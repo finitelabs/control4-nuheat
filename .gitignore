@@ -1,0 +1,12 @@
+/dist
+/build
+/.venv
+/.lua
+**/http-client.private.env.json
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Local planning and working notes, never committed
+plans/
