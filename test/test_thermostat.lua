@@ -34,6 +34,8 @@ T.eq("and not a Permanent hold", Thermostat.holdMode(off), "Off")
 local manual = Thermostat.fromDevice(device({ OperatingMode = 2, ScheduleMode = 3 }))
 T.truthy("Manual operating mode", manual.manual)
 T.eq("has no hold, whatever ScheduleMode says", Thermostat.holdMode(manual), "Off")
+T.eq("and offers only Heat", Thermostat.capabilities(manual).allowedHvacModes, "Heat")
+T.eq("Auto offers Off and Heat", Thermostat.capabilities(s).allowedHvacModes, "Off,Heat")
 
 T.section("a setpoint change")
 local d = Thermostat.applySetpoint(device(), 25.2)

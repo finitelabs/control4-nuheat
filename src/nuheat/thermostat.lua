@@ -132,7 +132,8 @@ end
 --- @return table capabilities
 function M.capabilities(state)
   return {
-    allowedHvacModes = "Off,Heat",
+    -- Off is a permanent hold, which Manual operating mode ignores.
+    allowedHvacModes = state.manual and "Heat" or "Off,Heat",
     -- Heat-setpoint model (like the original Nuheat driver): a single Heat
     -- setpoint, not the single_setpoint model.
     hasSingleSetpoint = false,

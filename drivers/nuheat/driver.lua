@@ -414,8 +414,9 @@ writeThermostat = function(serial, settings)
     -- the pre-write state, is discarded when it lands.
     gRefreshIssued = gRefreshIssued + 1
     gRefreshAccepted = gRefreshIssued
+    -- Not handed back: the companion already shows it, and an echo would read as
+    -- the cloud confirming the write and end its wait before the cloud has.
     gState.devices[serial] = written
-    handoff(serial)
     SetTimer("NuheatReadback", WRITE_READBACK_S * ONE_SECOND, refreshThermostats)
     done()
   end, function(err)

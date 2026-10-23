@@ -172,7 +172,7 @@ T.eq(
   JSON:decode(put.data),
   { serialNumber = "1234567", setPointTemp = 2500, scheduleMode = 2 }
 )
-T.eq("the companion gets the written state", JSON:decode(lastSend("updateThermostat").params.JSON).SetPointTemp, 2500)
+T.eq("the write is not echoed to the companion", lastSend("updateThermostat"), handoff)
 T.truthy("and a read-back is scheduled", timers.NuheatReadback)
 
 T.section("a 429 pauses polling for Retry-After")
