@@ -249,25 +249,11 @@ function RFP.DEC_SETPOINT_HEAT(idBinding)
   adjustSetpoint(idBinding, -1)
 end
 
-function RFP.SET_MODE_HEAT(idBinding)
-  log:trace("RFP.SET_MODE_HEAT(%s)", idBinding)
-  applyAndSend(idBinding, function()
-    Thermostat.applyHvacMode(gDevice, "Heat")
-  end)
-end
-
-function RFP.SET_MODE_OFF(idBinding)
-  log:trace("RFP.SET_MODE_OFF(%s)", idBinding)
-  applyAndSend(idBinding, function()
-    Thermostat.applyHvacMode(gDevice, "Off")
-  end)
-end
-
---- The thermostatV2 proxy forwards an HVAC mode change as SET_MODE_HVAC with
---- MODE (measured on a 4.3 controller), not as SET_MODE_OFF / SET_MODE_HEAT.
-function RFP.SET_MODE_HVAC(idBinding, _strCommand, tParams)
-  local mode = (tParams or {}).MODE
-  log:trace("RFP.SET_MODE_HVAC(%s)", tostring(mode))
+--- Set Heat or Off. Off is a permanent hold, which Manual operating mode
+--- ignores, so it is refused there.
+--- @param idBinding integer
+--- @param mode string
+local function setHvacMode(idBinding, mode)
   if mode ~= "Off" and mode ~= "Heat" then
     log:warn("Ignoring an HVAC mode this thermostat does not have: %s", tostring(mode))
     return
@@ -279,6 +265,24 @@ function RFP.SET_MODE_HVAC(idBinding, _strCommand, tParams)
   applyAndSend(idBinding, function()
     Thermostat.applyHvacMode(gDevice, mode)
   end)
+end
+
+function RFP.SET_MODE_HEAT(idBinding)
+  log:trace("RFP.SET_MODE_HEAT(%s)", idBinding)
+  setHvacMode(idBinding, "Heat")
+end
+
+function RFP.SET_MODE_OFF(idBinding)
+  log:trace("RFP.SET_MODE_OFF(%s)", idBinding)
+  setHvacMode(idBinding, "Off")
+end
+
+--- The thermostatV2 proxy forwards an HVAC mode change as SET_MODE_HVAC with
+--- MODE (measured on a 4.3 controller), not as SET_MODE_OFF / SET_MODE_HEAT.
+function RFP.SET_MODE_HVAC(idBinding, _strCommand, tParams)
+  local mode = (tParams or {}).MODE
+  log:trace("RFP.SET_MODE_HVAC(%s)", tostring(mode))
+  setHvacMode(idBinding, mode)
 end
 
 function RFP.SET_MODE_HOLD(idBinding, _strCommand, tParams)

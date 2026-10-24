@@ -145,5 +145,8 @@ handOver(device({ OperatingMode = 2 }))
 sends = {}
 RFP.SET_MODE_HVAC(PROXY_BINDING, "SET_MODE_HVAC", { MODE = "Off" })
 T.eq("Off in Manual operating mode writes nothing", lastWrite(), nil)
+sends = {}
+RFP.SET_MODE_OFF(PROXY_BINDING, "SET_MODE_OFF", {})
+T.eq("nor does SET_MODE_OFF", lastWrite(), nil)
 
 T.finish()
