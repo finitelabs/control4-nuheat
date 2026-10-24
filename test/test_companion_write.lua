@@ -118,4 +118,32 @@ for _, send in ipairs(sends) do
 end
 T.eq("a Celsius project reads CELSIUS", written and written.SetPointTemp, 2450)
 
+T.section("Heat/Off arrives as SET_MODE_HVAC")
+local function lastWrite()
+  local written
+  for _, send in ipairs(sends) do
+    if send.command == "setThermostat" then
+      written = JSON:decode(send.params.JSON)
+    end
+  end
+  return written
+end
+RFP.goOffline(ACCOUNT_BINDING, "goOffline")
+handOver(device())
+sends = {}
+RFP.SET_MODE_HVAC(PROXY_BINDING, "SET_MODE_HVAC", { MODE = "Off" })
+T.eq("Off holds permanently", lastWrite() and lastWrite().ScheduleMode, 3)
+T.eq("at 5 C", lastWrite() and lastWrite().SetPointTemp, 500)
+sends = {}
+RFP.SET_MODE_HVAC(PROXY_BINDING, "SET_MODE_HVAC", { MODE = "Heat" })
+T.eq("Heat resumes the schedule", lastWrite() and lastWrite().ScheduleMode, 1)
+sends = {}
+RFP.SET_MODE_HVAC(PROXY_BINDING, "SET_MODE_HVAC", { MODE = "Cool" })
+T.eq("a mode it does not have writes nothing", lastWrite(), nil)
+RFP.goOffline(ACCOUNT_BINDING, "goOffline")
+handOver(device({ OperatingMode = 2 }))
+sends = {}
+RFP.SET_MODE_HVAC(PROXY_BINDING, "SET_MODE_HVAC", { MODE = "Off" })
+T.eq("Off in Manual operating mode writes nothing", lastWrite(), nil)
+
 T.finish()

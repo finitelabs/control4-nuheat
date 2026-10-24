@@ -263,6 +263,24 @@ function RFP.SET_MODE_OFF(idBinding)
   end)
 end
 
+--- The thermostatV2 proxy forwards an HVAC mode change as SET_MODE_HVAC with
+--- MODE (measured on a 4.3 controller), not as SET_MODE_OFF / SET_MODE_HEAT.
+function RFP.SET_MODE_HVAC(idBinding, _strCommand, tParams)
+  local mode = (tParams or {}).MODE
+  log:trace("RFP.SET_MODE_HVAC(%s)", tostring(mode))
+  if mode ~= "Off" and mode ~= "Heat" then
+    log:warn("Ignoring an HVAC mode this thermostat does not have: %s", tostring(mode))
+    return
+  end
+  if mode == "Off" and gState and gState.manual then
+    log:warn("Ignoring Off: the thermostat is in Manual operating mode")
+    return
+  end
+  applyAndSend(idBinding, function()
+    Thermostat.applyHvacMode(gDevice, mode)
+  end)
+end
+
 function RFP.SET_MODE_HOLD(idBinding, _strCommand, tParams)
   log:trace("RFP.SET_MODE_HOLD(%s)", tostring((tParams or {}).MODE))
   applyAndSend(idBinding, function()
