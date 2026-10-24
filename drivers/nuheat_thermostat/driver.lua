@@ -273,61 +273,60 @@ end
 
 -- ─── Account linking in the app (thermostatV2 extras) ──────────────────────
 
---- @param value any
---- @return string
-local function xmlEscape(value)
-  return (
-    tostring(value or ""):gsub("[&<>\"']", {
-      ["&"] = "&amp;",
-      ["<"] = "&lt;",
-      [">"] = "&gt;",
-      ['"'] = "&quot;",
-      ["'"] = "&apos;",
-    })
-  )
-end
+--- The objects in the Nuheat Account extras section, in display order, with the
+--- attributes only the setup carries.
+local EXTRAS_OBJECTS = {
+  { id = "NuheatAccountStatus", static = 'type="text" label="Nuheat Account"' },
+  {
+    id = "LinkNuheatAccount",
+    static = 'type="button" label="Link Nuheat Account" buttontext="Get Link" command="LinkNuheatAccount"',
+  },
+  { id = "NuheatAuthLink", static = 'type="text" label="Open this link to sign in"' },
+}
 
---- @param hidden boolean
---- @return string
-local function hiddenAttr(hidden)
-  return hidden and "True" or "False"
-end
-
---- The extras objects for a link state: the account status always, the Get
---- Link button while unlinked, and the link while one is waiting to be opened.
+--- Each object's value and visibility for a link state: the account status
+--- always, Get Link while unlinked, and the link while one waits to be opened.
 --- @param auth table { linked: boolean, status: string, link: string }
---- @return string[] objects Attribute strings, without the element name.
-local function extrasObjects(auth)
+--- @return table<string, { value: string|nil, hidden: boolean }>
+local function extrasState(auth)
   local linked = auth.linked == true
   local link = auth.link or ""
   return {
-    string.format(
-      'type="text" id="NuheatAccountStatus" label="Nuheat Account" value="%s" hidden="False"',
-      xmlEscape(auth.status)
-    ),
-    string.format(
-      'type="button" id="LinkNuheatAccount" label="Link Nuheat Account" buttontext="Get Link"'
-        .. ' command="LinkNuheatAccount" hidden="%s"',
-      hiddenAttr(linked)
-    ),
-    string.format(
-      'type="text" id="NuheatAuthLink" label="Open this link to sign in" value="%s" hidden="%s"',
-      xmlEscape(link),
-      hiddenAttr(linked or link == "")
-    ),
+    NuheatAccountStatus = { value = auth.status or "", hidden = false },
+    LinkNuheatAccount = { hidden = linked },
+    NuheatAuthLink = { value = link, hidden = linked or link == "" },
   }
+end
+
+--- The section's objects as XML, with the setup-only attributes when asked.
+--- @param auth table
+--- @param withStatic boolean
+--- @return string
+local function extrasObjectsXml(auth, withStatic)
+  local state = extrasState(auth)
+  local objects = {}
+  for _, object in ipairs(EXTRAS_OBJECTS) do
+    local attrs = {}
+    if withStatic then
+      attrs[#attrs + 1] = object.static
+    end
+    attrs[#attrs + 1] = 'id="' .. object.id .. '"'
+    local entry = state[object.id]
+    if entry.value ~= nil then
+      attrs[#attrs + 1] = 'value="' .. XMLEncode(entry.value) .. '"'
+    end
+    attrs[#attrs + 1] = 'hidden="' .. (entry.hidden and "True" or "False") .. '"'
+    objects[#objects + 1] = "<object " .. table.concat(attrs, " ") .. "/>"
+  end
+  return table.concat(objects)
 end
 
 --- Describe the extras section to the proxy, in its current state.
 --- @param auth table
 local function pushExtrasSetup(auth)
-  local objects = {}
-  for _, attrs in ipairs(extrasObjects(auth)) do
-    objects[#objects + 1] = "<object " .. attrs .. "/>"
-  end
   SendToProxy(PROXY_BINDING, "EXTRAS_SETUP_CHANGED", {
     XML = '<extras_setup><extra><section label="Nuheat Account">'
-      .. table.concat(objects)
+      .. extrasObjectsXml(auth, true)
       .. "</section></extra></extras_setup>",
   }, "NOTIFY")
 end
@@ -337,16 +336,8 @@ function RFP.authStatus(idBinding, _strCommand, tParams)
   log:trace("RFP.authStatus(%s)", idBinding)
   tParams = tParams or {}
   local auth = { linked = toboolean(tParams.LINKED), status = tParams.STATUS or "", link = tParams.LINK or "" }
-  local link = auth.link
   SendToProxy(PROXY_BINDING, "EXTRAS_STATE_CHANGED", {
-    XML = "<extras_state><extra>" .. string.format(
-      '<object id="NuheatAccountStatus" value="%s" hidden="False"/>',
-      xmlEscape(auth.status)
-    ) .. string.format('<object id="LinkNuheatAccount" hidden="%s"/>', hiddenAttr(auth.linked)) .. string.format(
-      '<object id="NuheatAuthLink" value="%s" hidden="%s"/>',
-      xmlEscape(link),
-      hiddenAttr(auth.linked or link == "")
-    ) .. "</extra></extras_state>",
+    XML = "<extras_state><extra>" .. extrasObjectsXml(auth, false) .. "</extra></extras_state>",
   }, "NOTIFY")
 end
 

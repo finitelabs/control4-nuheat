@@ -196,6 +196,18 @@ os.time = realTime
 T.truthy("GO_OFFLINE is sent", lastSend("goOffline"))
 T.eq("Driver Status counts none", props["Driver Status"], "Connected (0 thermostats)")
 
+T.section("every poll re-sends the link state with the device")
+thermostats = { THERMOSTAT }
+sends = {}
+os.time = function()
+  return realTime() + 3600
+end
+timers.NuheatPoll.callback()
+os.time = realTime
+local polled = lastSend("authStatus")
+T.eq("to the thermostat's binding", polled and polled.idBinding, bindingId)
+T.eq("linked", polled and polled.params.LINKED, "true")
+
 T.section("a bound companion is told the link state")
 sends = {}
 OBC[bindingId](bindingId, "NUHEAT_THERMOSTAT", true)

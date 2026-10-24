@@ -106,9 +106,7 @@ end
 --- Link state as the companions show it in the app's extras.
 local gAuth = { linked = false, status = "Not linked", link = "" }
 
---- Send the link state to one binding's companion, or to every thermostat
---- binding: a companion stays bound across an unlink, and is where a customer
---- links again from the app.
+--- Send the link state to one binding's companion, or to every thermostat binding.
 --- @param bindingId integer|nil
 local function pushAuth(bindingId)
   local params = { LINKED = tostring(gAuth.linked), STATUS = gAuth.status, LINK = gAuth.link }
@@ -169,6 +167,8 @@ local function ingestThermostat(device)
         pushAuth(binding.bindingId)
       end
     end
+    -- With every handoff, so a companion that re-initialized shows the real state.
+    pushAuth(binding.bindingId)
   end
   handoff(serial)
 end
