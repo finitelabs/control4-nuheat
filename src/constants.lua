@@ -41,6 +41,11 @@ M.CMD = {
   GO_OFFLINE = "goOffline",
   --- companion → account: push mutated settings object as {JSON=...}
   SET_THERMOSTAT = "setThermostat",
+  --- account → companion: link state for the app's extras, as
+  --- { LINKED = "true"|"false", STATUS = text, LINK = sign-in link or "" }
+  AUTH_STATUS = "authStatus",
+  --- companion → account: a customer pressed Get Link in the app
+  LINK_ACCOUNT = "linkAccount",
 }
 
 return M

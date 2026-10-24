@@ -103,6 +103,24 @@ local function handoff(serial)
   SendToProxy(binding.bindingId, CMD.UPDATE_THERMOSTAT, { JSON = JSON:encode(device) })
 end
 
+--- Link state as the companions show it in the app's extras.
+local gAuth = { linked = false, status = "Not linked", link = "" }
+
+--- Send the link state to one binding's companion, or to every thermostat
+--- binding: a companion stays bound across an unlink, and is where a customer
+--- links again from the app.
+--- @param bindingId integer|nil
+local function pushAuth(bindingId)
+  local params = { LINKED = tostring(gAuth.linked), STATUS = gAuth.status, LINK = gAuth.link }
+  if bindingId then
+    SendToProxy(bindingId, CMD.AUTH_STATUS, params)
+    return
+  end
+  for _, binding in pairs(bindings:getDynamicBindings(NS)) do
+    SendToProxy(binding.bindingId, CMD.AUTH_STATUS, params)
+  end
+end
+
 --- Tell a thermostat's companion it is gone.
 --- @param serial string
 local function goOffline(serial)
@@ -148,6 +166,7 @@ local function ingestThermostat(device)
     OBC[binding.bindingId] = function(_idBinding, _strClass, bIsBound)
       if bIsBound then
         handoff(serial)
+        pushAuth(binding.bindingId)
       end
     end
   end
@@ -219,6 +238,8 @@ end
 --- @param authenticated boolean
 --- @param reason string|nil
 local function onAuthChanged(authenticated, reason)
+  gAuth = { linked = authenticated, status = authenticated and "Linked" or (reason or "Not linked"), link = "" }
+  pushAuth()
   if authenticated then
     C4:UpdateProperty("Account Status", "Linked")
     C4:UpdateProperty("Authentication URL", "")
@@ -227,7 +248,7 @@ local function onAuthChanged(authenticated, reason)
     return
   end
   stopPolling()
-  C4:UpdateProperty("Account Status", reason or "Not linked")
+  C4:UpdateProperty("Account Status", gAuth.status)
   C4:UpdateProperty("Driver Status", "Not connected")
   for serial in pairs(gState.devices) do
     goOffline(serial)
@@ -238,9 +259,12 @@ end
 --- @param link string
 local function onLink(link)
   C4:UpdateProperty("Authentication URL", link)
+  gAuth.link = link or ""
   if not IsEmpty(link) then
+    gAuth.status = "Open the link to sign in to Nuheat"
     C4:UpdateProperty("Account Status", "Open the Authentication URL to sign in to Nuheat")
   end
+  pushAuth()
 end
 
 client = Client:new({ onLink = onLink, onAuthChanged = onAuthChanged })
@@ -449,6 +473,12 @@ function RFP.setThermostat(idBinding, _strCommand, tParams)
     return
   end
   writeThermostat(serial, settings)
+end
+
+--- A customer pressed Get Link in a thermostat's extras in the Control4 app.
+function RFP.linkAccount(idBinding)
+  log:trace("RFP.linkAccount(%s)", idBinding)
+  EC.Link_Account()
 end
 
 -- ─── Actions (EC dispatch) ─────────────────────────────────────────────────

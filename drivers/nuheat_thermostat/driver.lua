@@ -271,6 +271,94 @@ function RFP.SET_SCALE(idBinding, _strCommand, tParams)
   applyDisplayScale(scale)
 end
 
+-- ─── Account linking in the app (thermostatV2 extras) ──────────────────────
+
+--- @param value any
+--- @return string
+local function xmlEscape(value)
+  return (
+    tostring(value or ""):gsub("[&<>\"']", {
+      ["&"] = "&amp;",
+      ["<"] = "&lt;",
+      [">"] = "&gt;",
+      ['"'] = "&quot;",
+      ["'"] = "&apos;",
+    })
+  )
+end
+
+--- @param hidden boolean
+--- @return string
+local function hiddenAttr(hidden)
+  return hidden and "True" or "False"
+end
+
+--- The extras objects for a link state: the account status always, the Get
+--- Link button while unlinked, and the link while one is waiting to be opened.
+--- @param auth table { linked: boolean, status: string, link: string }
+--- @return string[] objects Attribute strings, without the element name.
+local function extrasObjects(auth)
+  local linked = auth.linked == true
+  local link = auth.link or ""
+  return {
+    string.format(
+      'type="text" id="NuheatAccountStatus" label="Nuheat Account" value="%s" hidden="False"',
+      xmlEscape(auth.status)
+    ),
+    string.format(
+      'type="button" id="LinkNuheatAccount" label="Link Nuheat Account" buttontext="Get Link"'
+        .. ' command="LinkNuheatAccount" hidden="%s"',
+      hiddenAttr(linked)
+    ),
+    string.format(
+      'type="text" id="NuheatAuthLink" label="Open this link to sign in" value="%s" hidden="%s"',
+      xmlEscape(link),
+      hiddenAttr(linked or link == "")
+    ),
+  }
+end
+
+--- Describe the extras section to the proxy, in its current state.
+--- @param auth table
+local function pushExtrasSetup(auth)
+  local objects = {}
+  for _, attrs in ipairs(extrasObjects(auth)) do
+    objects[#objects + 1] = "<object " .. attrs .. "/>"
+  end
+  SendToProxy(PROXY_BINDING, "EXTRAS_SETUP_CHANGED", {
+    XML = '<extras_setup><extra><section label="Nuheat Account">'
+      .. table.concat(objects)
+      .. "</section></extra></extras_setup>",
+  }, "NOTIFY")
+end
+
+--- The account's link state for the extras.
+function RFP.authStatus(idBinding, _strCommand, tParams)
+  log:trace("RFP.authStatus(%s)", idBinding)
+  tParams = tParams or {}
+  local auth = { linked = toboolean(tParams.LINKED), status = tParams.STATUS or "", link = tParams.LINK or "" }
+  local link = auth.link
+  SendToProxy(PROXY_BINDING, "EXTRAS_STATE_CHANGED", {
+    XML = "<extras_state><extra>" .. string.format(
+      '<object id="NuheatAccountStatus" value="%s" hidden="False"/>',
+      xmlEscape(auth.status)
+    ) .. string.format('<object id="LinkNuheatAccount" hidden="%s"/>', hiddenAttr(auth.linked)) .. string.format(
+      '<object id="NuheatAuthLink" value="%s" hidden="%s"/>',
+      xmlEscape(link),
+      hiddenAttr(auth.linked or link == "")
+    ) .. "</extra></extras_state>",
+  }, "NOTIFY")
+end
+
+--- Get Link pressed in the app: the account owns the sign-in.
+function RFP.LinkNuheatAccount(idBinding)
+  log:trace("RFP.LinkNuheatAccount(%s)", idBinding)
+  if idBinding ~= PROXY_BINDING then
+    return
+  end
+  SendToProxy(ACCOUNT_BINDING, constants.CMD.LINK_ACCOUNT, {})
+end
+
 -- ─── Account handoff handlers (account → this companion) ────────────────────
 
 --- The account hands over the current Nuheat thermostat object.
@@ -379,4 +467,6 @@ function OnDriverLateInit()
   -- "Initializing" via the OPC.Driver_Status guard.
   C4:UpdateProperty("Driver Status", "Waiting for thermostat")
   SendToProxy(PROXY_BINDING, "ONLINE_CHANGED", { STATE = false }, "NOTIFY")
+  -- The account sends the real state when this binds and on every change.
+  pushExtrasSetup({ linked = false, status = "Waiting for the Nuheat account driver", link = "" })
 end

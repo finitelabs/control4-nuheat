@@ -196,10 +196,28 @@ os.time = realTime
 T.truthy("GO_OFFLINE is sent", lastSend("goOffline"))
 T.eq("Driver Status counts none", props["Driver Status"], "Connected (0 thermostats)")
 
+T.section("a bound companion is told the link state")
+sends = {}
+OBC[bindingId](bindingId, "NUHEAT_THERMOSTAT", true)
+local auth = lastSend("authStatus")
+T.eq("on bind, to that binding", auth and auth.idBinding, bindingId)
+T.eq("linked", auth and auth.params.LINKED, "true")
+
 T.section("Unlink Account signs out and stops polling")
 EC.Unlink_Account()
 T.eq("Account Status", props["Account Status"], "Signed out")
 T.eq("polling stops", timers.NuheatPoll, nil)
+auth = lastSend("authStatus")
+T.eq("the companion is told", auth and auth.params.LINKED, "false")
+T.eq("why", auth and auth.params.STATUS, "Signed out")
+
+T.section("Get Link pressed in the app starts a sign-in")
+requests = {}
+RFP.linkAccount(bindingId, "linkAccount", {})
+T.truthy("a state is registered", lastRequest("POST", "control4driversdev%.com/state$"))
+auth = lastSend("authStatus")
+T.contains("the companion gets the link", auth and auth.params.LINK, constants.AUTH_ENDPOINT)
+T.eq("still unlinked", auth and auth.params.LINKED, "false")
 
 T.section("a build without secrets says so")
 constants.CLIENT_ID = "__NUHEAT_CLIENT_ID__"

@@ -48,6 +48,7 @@ heat setpoint, temperature range) to the device it is given.
     - [Driver Settings](#driver-settings)
   - [Connections](#connections)
 - [Schedules and Holds](#schedules-and-holds)
+- [Linking from the Control4 App](#linking-from-the-control4-app)
 
 <!-- #ifdef DRIVERCENTRAL -->
 
@@ -166,6 +167,19 @@ until it is switched back to **Heat**, which resumes the schedule.
 
 A thermostat in Manual operating mode (set on the thermostat or in the Nuheat
 app) ignores its schedule and holds; only the setpoint can be changed.
+
+# <span style="color:#FF0547">Linking from the Control4 App</span>
+
+The thermostat's extras in the Control4 app have a **Nuheat Account** section
+showing whether the account is linked. If it is not (after **Unlink Account**,
+or if Nuheat stops accepting the sign-in), the section shows a **Get Link**
+button: press it, then open the link it shows in a browser within five minutes
+and sign in to Nuheat. The account driver picks up the sign-in and every
+thermostat reconnects.
+
+The first link is done in Composer with the account driver's **Link Account**
+action, since this driver can only be bound once the account driver has found
+the thermostats.
 
 <!-- #ifdef DRIVERCENTRAL -->
 
