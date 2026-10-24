@@ -263,6 +263,9 @@ local function onLink(link)
   if not IsEmpty(link) then
     gAuth.status = "Open the link to sign in to Nuheat"
     C4:UpdateProperty("Account Status", "Open the Authentication URL to sign in to Nuheat")
+  elseif gAuth.linked then
+    gAuth.status = "Linked"
+    C4:UpdateProperty("Account Status", "Linked")
   end
   pushAuth()
 end

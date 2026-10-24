@@ -88,17 +88,27 @@ function Client:start()
   grant.notifyHandler.AccessTokenDenied = function(_, err, description)
     self._onAuthChanged(false, description or err or "Nuheat refused the sign-in")
   end
+  -- A sign-in started while already signed in that then fails leaves the
+  -- existing token in place, so it only clears the link.
+  local function linkFailed(reason)
+    if self:isAuthenticated() then
+      log:info("A new sign-in did not complete (%s); keeping the existing one", reason)
+      self._onLink("")
+    else
+      self._onAuthChanged(false, reason)
+    end
+  end
   grant.notifyHandler.LinkCodeDenied = function(_, err, description)
-    self._onAuthChanged(false, description or err or "Access was denied")
+    linkFailed(description or err or "Access was denied")
   end
   grant.notifyHandler.LinkCodeExpired = function()
-    self._onAuthChanged(false, "The sign-in link expired")
+    linkFailed("The sign-in link expired")
   end
   grant.notifyHandler.ActivationTimeOut = function()
-    self._onAuthChanged(false, "The sign-in link expired")
+    linkFailed("The sign-in link expired")
   end
   grant.notifyHandler.MakeStateFailed = function(_, responseCode)
-    self._onAuthChanged(false, "Control4's sign-in service refused the request (" .. tostring(responseCode) .. ")")
+    linkFailed("Control4's sign-in service refused the request (" .. tostring(responseCode) .. ")")
   end
   grant.notifyHandler.RefreshTokenDeleted = function()
     self._onAuthChanged(false, "Signed out")

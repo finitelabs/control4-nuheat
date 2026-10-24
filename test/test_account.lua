@@ -208,6 +208,14 @@ local polled = lastSend("authStatus")
 T.eq("to the thermostat's binding", polled and polled.idBinding, bindingId)
 T.eq("linked", polled and polled.params.LINKED, "true")
 
+T.section("a new link that expires while linked keeps the account linked")
+EC.Link_Account()
+T.contains("a link is shown", props["Authentication URL"], constants.AUTH_ENDPOINT)
+timers["OAuth_Nuheat_Timer_GetCodeStatusExpired"].callback()
+T.eq("the link is cleared", props["Authentication URL"], "")
+T.eq("Account Status is still Linked", props["Account Status"], "Linked")
+T.truthy("and polling continues", timers.NuheatPoll)
+
 T.section("a bound companion is told the link state")
 sends = {}
 OBC[bindingId](bindingId, "NUHEAT_THERMOSTAT", true)

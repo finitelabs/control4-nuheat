@@ -89,4 +89,33 @@ sends = {}
 timers.NuheatConfirm.callback()
 T.eq("and nothing more is sent", writesToAccount(), 0)
 
+T.section("a Fahrenheit project's setpoint is read in Fahrenheit")
+-- Captured from the thermostatV2 proxy on a 4.3 controller in a Fahrenheit
+-- project, setting 24.5 C: CELSIUS arrives rounded to a whole degree.
+RFP.goOffline(ACCOUNT_BINDING, "goOffline")
+handOver(device())
+RFP.SET_SCALE(PROXY_BINDING, "SET_SCALE", { SCALE = "FAHRENHEIT" })
+sends = {}
+RFP.SET_SETPOINT_HEAT(
+  PROXY_BINDING,
+  "SET_SETPOINT_HEAT",
+  { CELSIUS = "25", FAHRENHEIT = "76", KELVIN = "2976", SETPOINT = "76" }
+)
+local written
+for _, send in ipairs(sends) do
+  if send.command == "setThermostat" then
+    written = JSON:decode(send.params.JSON)
+  end
+end
+T.eq("76 F is written as 24.5 C, not 25", written and written.SetPointTemp, 2450)
+RFP.SET_SCALE(PROXY_BINDING, "SET_SCALE", { SCALE = "CELSIUS" })
+sends = {}
+RFP.SET_SETPOINT_HEAT(PROXY_BINDING, "SET_SETPOINT_HEAT", { CELSIUS = "24.5", FAHRENHEIT = "76" })
+for _, send in ipairs(sends) do
+  if send.command == "setThermostat" then
+    written = JSON:decode(send.params.JSON)
+  end
+end
+T.eq("a Celsius project reads CELSIUS", written and written.SetPointTemp, 2450)
+
 T.finish()

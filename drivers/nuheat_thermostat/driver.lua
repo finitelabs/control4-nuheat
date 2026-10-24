@@ -189,10 +189,25 @@ local function applyAndSend(idBinding, mutate)
   pushState()
 end
 
+--- The setpoint a proxy command carries, in °C. In a Fahrenheit project the
+--- proxy rounds CELSIUS to a whole degree (76 °F arrives as CELSIUS 25), so the
+--- value in the scale it displays is the exact one.
+--- @param tParams table
+--- @return number|nil
+local function setpointCelsius(tParams)
+  if gReportedScale == "F" then
+    local fahrenheit = tofinite(tonumber_expect_period(Select(tParams, "FAHRENHEIT")))
+    if fahrenheit ~= nil then
+      return Thermostat.fToC(fahrenheit)
+    end
+  end
+  return CelsiusFromParams(tParams)
+end
+
 --- @param idBinding integer
 --- @param tParams table
 local function handleSetpoint(idBinding, tParams)
-  local celsius = CelsiusFromParams(tParams)
+  local celsius = setpointCelsius(tParams)
   if celsius == nil then
     return
   end
