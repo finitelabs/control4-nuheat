@@ -79,6 +79,17 @@ xml = last("EXTRAS_STATE_CHANGED").params.XML
 T.contains("shows Get Link", object(xml, "LinkNuheatAccount"), 'hidden="False"')
 T.contains("hides the empty link", object(xml, "NuheatAuthLink"), 'hidden="True"')
 
+T.section("the thermostat screen's banner follows the link state")
+sends = {}
+RFP.authStatus(ACCOUNT_BINDING, "authStatus", { LINKED = "false", STATUS = "Signed out", LINK = "" })
+T.eq("unchanged while still unlinked, not re-sent", last("MESSAGE_CHANGED"), nil)
+RFP.authStatus(ACCOUNT_BINDING, "authStatus", { LINKED = "true", STATUS = "Linked", LINK = "" })
+local banner = last("MESSAGE_CHANGED")
+T.eq("cleared once linked", banner and banner.params.MESSAGE, "")
+T.eq("on the thermostat proxy", banner and banner.idBinding, PROXY_BINDING)
+RFP.authStatus(ACCOUNT_BINDING, "authStatus", { LINKED = "false", STATUS = "Signed out", LINK = "" })
+T.eq("points to Extras when unlinked", last("MESSAGE_CHANGED").params.MESSAGE, "Sign in to Nuheat from Extras")
+
 T.section("Get Link goes to the account")
 sends = {}
 RFP.LinkNuheatAccount(PROXY_BINDING, "LinkNuheatAccount", {})
