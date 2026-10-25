@@ -178,9 +178,12 @@ button: press it, then open the link it shows in a browser within five minutes
 and sign in to Nuheat. The account driver picks up the sign-in and every
 thermostat reconnects.
 
-The first link is done in Composer with the account driver's **Link Account**
-action, since this driver can only be bound once the account driver has found
-the thermostats.
+This works before this driver is bound too, so the first link can be left to the
+customer: with the **Nuheat** account driver in the project, **Get Link** signs
+the account in, and the account driver then finds the thermostats to bind. Until
+it is bound, the section shows the account's link state but no thermostat. With
+more than one **Nuheat** account driver in the project, bind this driver first:
+which account it belongs to is the binding.
 
 <!-- #ifdef DRIVERCENTRAL -->
 

@@ -34,6 +34,25 @@ M.BINDING_NAMESPACE = "nuheat"
 --- nuheat_thermostat companion (consumer). Must match the companion driver.xml.
 M.THERMOSTAT_CLASS = "NUHEAT_THERMOSTAT"
 
+--- Driver filenames, for C4:GetDevicesByC4iName.
+M.ACCOUNT_DRIVER = "nuheat.c4z"
+M.COMPANION_DRIVER = "nuheat_thermostat.c4z"
+
+--- The companion's consumer connection to the account. Must match the companion
+--- driver.xml.
+M.COMPANION_ACCOUNT_BINDING = 5002
+
+--- Commands sent with C4:SendToDevice between the account and a companion that
+--- is not bound to it yet.
+M.DEVICE_CMD = {
+  --- companion → account: Get Link pressed, as { DEVICE = companion device id }
+  LINK_REQUEST = "NuheatLinkRequest",
+  --- companion → account: send me the link state, as { DEVICE = companion device id }
+  AUTH_STATUS_REQUEST = "NuheatAuthStatusRequest",
+  --- account → companion: link state, with the same params as CMD.AUTH_STATUS
+  AUTH_STATUS = "NuheatAuthStatus",
+}
+
 --- Proxy commands exchanged across the account ↔ companion binding.
 M.CMD = {
   --- account → companion: full thermostat object as {JSON=...}

@@ -131,6 +131,11 @@ is an outline of the basic steps for your convenience.
    "Nuheat Thermostat" driver. In the "Connections" tab, select the "Nuheat"
    driver and bind each discovered thermostat to a "Nuheat Thermostat" driver.
 
+The link can also be left to the customer: add the "Nuheat" driver and a "Nuheat
+Thermostat" driver per thermostat, and **Get Link** in a thermostat's extras in
+the Control4 app signs the account in. Bind the discovered thermostats once
+`Driver Status` shows them.
+
 Each companion driver includes its own documentation accessible from within
 Composer Pro. Refer to the **Nuheat Thermostat** driver documentation for its
 property, connection, and programming reference.
@@ -196,9 +201,10 @@ the current version.
 
 Starts a sign-in: the [`Authentication URL`](#authentication-url-read-only)
 property shows a link to open, valid for five minutes. Once you sign in and
-allow access, the driver stays linked, across reboots, until you unlink it.
-After the first link, a customer can also link again from the Control4 app, with
-**Get Link** in any Nuheat thermostat's extras.
+allow access, the driver stays linked, across reboots, until you unlink it. A
+customer can also link from the Control4 app, with **Get Link** in any Nuheat
+thermostat's extras, including one not bound yet when the project has a single
+Nuheat account driver.
 
 #### Unlink Account
 

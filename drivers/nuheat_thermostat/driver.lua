@@ -31,7 +31,7 @@ local constants = require("constants")
 --- thermostatV2 proxy (this driver's primary proxy).
 local PROXY_BINDING = 5001
 --- Consumer connection bound up to the Nuheat account driver.
-local ACCOUNT_BINDING = 5002
+local ACCOUNT_BINDING = constants.COMPANION_ACCOUNT_BINDING
 --- Temperature value output connection.
 local TEMP_OUTPUT_BINDING = 5010
 
@@ -370,14 +370,54 @@ local function pushExtrasSetup(auth)
   }, "NOTIFY")
 end
 
---- The account's link state for the extras.
-function RFP.authStatus(idBinding, _strCommand, tParams)
-  log:trace("RFP.authStatus(%s)", idBinding)
-  tParams = tParams or {}
-  local auth = { linked = toboolean(tParams.LINKED), status = tParams.STATUS or "", link = tParams.LINK or "" }
+--- @param auth table
+local function pushExtrasState(auth)
   SendToProxy(PROXY_BINDING, "EXTRAS_STATE_CHANGED", {
     XML = "<extras_state><extra>" .. extrasObjectsXml(auth, false) .. "</extra></extras_state>",
   }, "NOTIFY")
+end
+
+--- @param tParams table|nil { LINKED, STATUS, LINK } as the account sends them
+--- @return table
+local function authFromParams(tParams)
+  tParams = tParams or {}
+  return { linked = toboolean(tParams.LINKED), status = tParams.STATUS or "", link = tParams.LINK or "" }
+end
+
+--- @return boolean
+local function accountBound()
+  return (tonumber(C4:GetBoundProviderDevice(C4:GetDeviceID(), ACCOUNT_BINDING)) or 0) ~= 0
+end
+
+--- The account driver an unbound companion can reach: the only one in the project.
+--- @return integer|nil accountId
+--- @return string|nil status why there is none
+local function soleAccount()
+  local ids = {}
+  for id in pairs(C4:GetDevicesByC4iName(constants.ACCOUNT_DRIVER) or {}) do
+    ids[#ids + 1] = tonumber(id)
+  end
+  if #ids == 1 then
+    return ids[1]
+  elseif #ids == 0 then
+    return nil, "Add the Nuheat account driver to the project"
+  end
+  return nil, "Connect this thermostat to a Nuheat account driver in Composer"
+end
+
+--- The account's link state for the extras.
+function RFP.authStatus(idBinding, _strCommand, tParams)
+  log:trace("RFP.authStatus(%s)", idBinding)
+  pushExtrasState(authFromParams(tParams))
+end
+
+--- The link state from the account while this companion is not bound to it.
+function EC.NuheatAuthStatus(tParams)
+  log:trace("EC.NuheatAuthStatus()")
+  if accountBound() then
+    return
+  end
+  pushExtrasState(authFromParams(tParams))
 end
 
 --- Get Link pressed in the app: the account owns the sign-in.
@@ -386,7 +426,16 @@ function RFP.LinkNuheatAccount(idBinding)
   if idBinding ~= PROXY_BINDING then
     return
   end
-  SendToProxy(ACCOUNT_BINDING, constants.CMD.LINK_ACCOUNT, {})
+  if accountBound() then
+    SendToProxy(ACCOUNT_BINDING, constants.CMD.LINK_ACCOUNT, {})
+    return
+  end
+  local account, status = soleAccount()
+  if account then
+    C4:SendToDevice(account, constants.DEVICE_CMD.LINK_REQUEST, { DEVICE = tostring(C4:GetDeviceID()) })
+  else
+    pushExtrasState({ linked = false, status = status, link = "" })
+  end
 end
 
 -- ─── Account handoff handlers (account → this companion) ────────────────────
@@ -500,5 +549,12 @@ function OnDriverLateInit()
   C4:UpdateProperty("Driver Status", "Waiting for thermostat")
   SendToProxy(PROXY_BINDING, "ONLINE_CHANGED", { STATE = false }, "NOTIFY")
   -- The account sends the real state when this binds and on every change.
-  pushExtrasSetup({ linked = false, status = "Waiting for the Nuheat account driver", link = "" })
+  local account, status
+  if not accountBound() then
+    account, status = soleAccount()
+  end
+  pushExtrasSetup({ linked = false, status = status or "Waiting for the Nuheat account driver", link = "" })
+  if account then
+    C4:SendToDevice(account, constants.DEVICE_CMD.AUTH_STATUS_REQUEST, { DEVICE = tostring(C4:GetDeviceID()) })
+  end
 end

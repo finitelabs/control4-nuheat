@@ -4,7 +4,9 @@
 -- redirect service), polls the account's thermostats, and exposes a dynamic
 -- PROXY binding per thermostat that the nuheat_thermostat companion drivers bind
 -- to. Companions receive the device object over the binding (UPDATE_THERMOSTAT)
--- and push mutated settings back (setThermostat), which this driver writes.
+-- and push mutated settings back (setThermostat), which this driver writes. A
+-- companion not bound yet reaches the account with C4:SendToDevice, so a customer
+-- can link the account from the app before a dealer binds anything.
 
 --#ifdef DRIVERCENTRAL
 DC_PID = 0 -- TODO: Assign DriverCentral product ID
@@ -106,16 +108,64 @@ end
 --- Link state as the companions show it in the app's extras.
 local gAuth = { linked = false, status = "Not linked", link = "" }
 
---- Send the link state to one binding's companion, or to every thermostat binding.
+--- Companions on this controller with nothing bound to their account connection.
+--- None while there is more than one account instance: which account a companion
+--- belongs to is then a binding only a dealer can choose.
+--- @return integer[]
+local function unboundCompanionIds()
+  if #getAccountDriverIds() ~= 1 then
+    return {}
+  end
+  local ids = {}
+  for id in pairs(C4:GetDevicesByC4iName(constants.COMPANION_DRIVER) or {}) do
+    id = tonumber(id)
+    if id and (tonumber(C4:GetBoundProviderDevice(id, constants.COMPANION_ACCOUNT_BINDING)) or 0) == 0 then
+      ids[#ids + 1] = id
+    end
+  end
+  table.sort(ids)
+  return ids
+end
+
+--- @param deviceId integer|nil
+--- @return boolean
+local function isUnboundCompanion(deviceId)
+  for _, id in ipairs(unboundCompanionIds()) do
+    if id == deviceId then
+      return true
+    end
+  end
+  return false
+end
+
+--- @param unbound boolean the companion has no thermostat to show yet
+--- @return table
+local function authParams(unbound)
+  local status = gAuth.status
+  if unbound and gAuth.linked then
+    status = "Linked; connect this thermostat to the Nuheat account in Composer"
+  end
+  return { LINKED = tostring(gAuth.linked), STATUS = status, LINK = gAuth.link }
+end
+
+--- @param deviceId integer an unbound companion
+local function pushAuthToDevice(deviceId)
+  C4:SendToDevice(deviceId, constants.DEVICE_CMD.AUTH_STATUS, authParams(true))
+end
+
+--- Send the link state to one binding's companion, or to every thermostat binding
+--- and every unbound companion.
 --- @param bindingId integer|nil
 local function pushAuth(bindingId)
-  local params = { LINKED = tostring(gAuth.linked), STATUS = gAuth.status, LINK = gAuth.link }
   if bindingId then
-    SendToProxy(bindingId, CMD.AUTH_STATUS, params)
+    SendToProxy(bindingId, CMD.AUTH_STATUS, authParams(false))
     return
   end
   for _, binding in pairs(bindings:getDynamicBindings(NS)) do
-    SendToProxy(binding.bindingId, CMD.AUTH_STATUS, params)
+    SendToProxy(binding.bindingId, CMD.AUTH_STATUS, authParams(false))
+  end
+  for _, deviceId in ipairs(unboundCompanionIds()) do
+    pushAuthToDevice(deviceId)
   end
 end
 
@@ -339,17 +389,18 @@ function OnDriverLateInit()
   gInitialized = true
   C4:UpdateProperty("Authentication URL", "")
   if not client:isConfigured() then
-    C4:UpdateProperty("Account Status", "This build has no Nuheat API credentials")
+    gAuth.status = "This build has no Nuheat API credentials"
+    C4:UpdateProperty("Account Status", gAuth.status)
     C4:UpdateProperty("Driver Status", "Not configured")
-    return
-  end
-  if client:start() then
-    C4:UpdateProperty("Account Status", "Signing in...")
+  elseif client:start() then
+    gAuth.status = "Signing in..."
+    C4:UpdateProperty("Account Status", gAuth.status)
     C4:UpdateProperty("Driver Status", "Connecting")
   else
     C4:UpdateProperty("Account Status", "Not linked: run the Link Account action")
     C4:UpdateProperty("Driver Status", "Not connected")
   end
+  pushAuth()
 end
 
 function OnDriverDestroyed()
@@ -482,6 +533,29 @@ end
 function RFP.linkAccount(idBinding)
   log:trace("RFP.linkAccount(%s)", idBinding)
   EC.Link_Account()
+end
+
+-- ─── Messages from an unbound companion (C4:SendToDevice) ──────────────────
+
+--- A customer pressed Get Link on a thermostat not bound to this account yet.
+--- @param tParams table { DEVICE = companion device id }
+function EC.NuheatLinkRequest(tParams)
+  local companion = tonumber((tParams or {}).DEVICE)
+  log:trace("EC.NuheatLinkRequest(%s)", tostring(companion))
+  if not isUnboundCompanion(companion) then
+    return
+  end
+  EC.Link_Account()
+end
+
+--- An unbound companion started and asks for the link state.
+--- @param tParams table { DEVICE = companion device id }
+function EC.NuheatAuthStatusRequest(tParams)
+  local companion = tonumber((tParams or {}).DEVICE)
+  log:trace("EC.NuheatAuthStatusRequest(%s)", tostring(companion))
+  if isUnboundCompanion(companion) then
+    pushAuthToDevice(companion)
+  end
 end
 
 -- ─── Actions (EC dispatch) ─────────────────────────────────────────────────

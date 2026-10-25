@@ -78,6 +78,30 @@ C4.SendToProxy = function(_, idBinding, command, tParams)
   table.insert(sends, { idBinding = idBinding, command = command, params = tParams })
 end
 
+local deviceSends = {}
+C4.SendToDevice = function(_, deviceId, command, tParams)
+  table.insert(deviceSends, { deviceId = deviceId, command = command, params = tParams })
+end
+
+local ACCOUNT_ID = C4:GetDeviceID()
+local COMPANION_ID = 200
+local accountIds = { [ACCOUNT_ID] = "Nuheat" }
+C4.GetDevicesByC4iName = function(_, name)
+  if name == C4:GetDriverFileName() then
+    return accountIds
+  elseif name == constants.COMPANION_DRIVER then
+    return { [COMPANION_ID] = "Nuheat Thermostat" }
+  end
+end
+
+local function lastDeviceSend(deviceId)
+  for i = #deviceSends, 1, -1 do
+    if deviceSends[i].deviceId == deviceId then
+      return deviceSends[i]
+    end
+  end
+end
+
 local function lastSend(command)
   for i = #sends, 1, -1 do
     if sends[i].command == command then
@@ -119,9 +143,30 @@ OnDriverLateInit()
 T.section("a fresh driver waits to be linked")
 T.contains("Account Status asks for Link Account", props["Account Status"], "Link Account")
 T.eq("nothing polls", timers.NuheatPoll, nil)
+local told = lastDeviceSend(COMPANION_ID)
+T.eq("an unbound companion is told", told and told.command, "NuheatAuthStatus")
+T.eq("not linked", told and told.params.LINKED, "false")
 
-T.section("Link Account signs in through Control4's redirect service")
-EC.Link_Account()
+T.section("an unbound companion that starts asks for the link state")
+deviceSends = {}
+EC.NuheatAuthStatusRequest({ DEVICE = tostring(COMPANION_ID) })
+T.eq("and is told", lastDeviceSend(COMPANION_ID) and lastDeviceSend(COMPANION_ID).params.LINKED, "false")
+EC.NuheatAuthStatusRequest({ DEVICE = "999" })
+T.eq("a device that is no companion is not", lastDeviceSend(999), nil)
+
+T.section("with two account drivers, an unbound companion belongs to neither")
+accountIds = { [ACCOUNT_ID] = "Nuheat", [ACCOUNT_ID + 1] = "Nuheat 2" }
+deviceSends = {}
+requests = {}
+EC.NuheatAuthStatusRequest({ DEVICE = tostring(COMPANION_ID) })
+EC.NuheatLinkRequest({ DEVICE = tostring(COMPANION_ID) })
+T.eq("no state is sent", #deviceSends, 0)
+T.eq("and no sign-in starts", #requests, 0)
+accountIds = { [ACCOUNT_ID] = "Nuheat" }
+
+T.section("Get Link on an unbound companion signs in through Control4's redirect service")
+deviceSends = {}
+EC.NuheatLinkRequest({ DEVICE = tostring(COMPANION_ID) })
 local state = lastRequest("POST", "control4driversdev%.com/state$")
 T.truthy("a state is registered on the development server", state)
 T.eq("with the C4 OAuth API key", state and state.headers.Authorization, "c4-oauth-key")
@@ -131,6 +176,8 @@ T.contains(
   constants.AUTH_ENDPOINT
 )
 T.contains("for this client", props["Authentication URL"], "client_id=test-client")
+told = lastDeviceSend(COMPANION_ID)
+T.contains("the companion gets the link", told and told.params.LINK, constants.AUTH_ENDPOINT)
 
 timers["OAuth_Nuheat_Timer_CheckState"].callback()
 local token = lastRequest("POST", "connect/token")
@@ -139,6 +186,9 @@ T.eq("Account Status", props["Account Status"], "Linked")
 T.eq("the link is cleared", props["Authentication URL"], "")
 T.truthy("polling starts", timers.NuheatPoll and timers.NuheatPoll.repeating)
 T.eq("every Poll Interval", timers.NuheatPoll.delay, 60 * 1000)
+told = lastDeviceSend(COMPANION_ID)
+T.eq("the companion is told it is linked", told and told.params.LINKED, "true")
+T.contains("and that it still needs connecting", told and told.params.STATUS, "Composer")
 
 T.section("the account's thermostat is handed to its companion")
 T.eq("Driver Status", props["Driver Status"], "Connected (1 thermostat)")
@@ -207,23 +257,29 @@ T.truthy("and polling continues", timers.NuheatPoll)
 
 T.section("a bound companion is told the link state")
 sends = {}
+C4:Bind(ACCOUNT_ID, bindingId, COMPANION_ID, constants.COMPANION_ACCOUNT_BINDING, constants.THERMOSTAT_CLASS)
 OBC[bindingId](bindingId, "NUHEAT_THERMOSTAT", true)
 local auth = lastSend("authStatus")
 T.eq("on bind, to that binding", auth and auth.idBinding, bindingId)
 T.eq("linked", auth and auth.params.LINKED, "true")
 
 T.section("Unlink Account signs out and stops polling")
+deviceSends = {}
 EC.Unlink_Account()
 T.eq("Account Status", props["Account Status"], "Signed out")
 T.eq("polling stops", timers.NuheatPoll, nil)
 auth = lastSend("authStatus")
 T.eq("the companion is told", auth and auth.params.LINKED, "false")
 T.eq("why", auth and auth.params.STATUS, "Signed out")
+T.eq("over the binding, not as an unbound companion", lastDeviceSend(COMPANION_ID), nil)
 
 T.section("Get Link pressed in the app starts a sign-in")
 requests = {}
 RFP.linkAccount(bindingId, "linkAccount", {})
 T.truthy("a state is registered", lastRequest("POST", "control4driversdev%.com/state$"))
+requests = {}
+EC.NuheatLinkRequest({ DEVICE = tostring(COMPANION_ID) })
+T.eq("a bound companion's request by device is ignored", #requests, 0)
 auth = lastSend("authStatus")
 T.contains("the companion gets the link", auth and auth.params.LINK, constants.AUTH_ENDPOINT)
 T.eq("still unlinked", auth and auth.params.LINKED, "false")
