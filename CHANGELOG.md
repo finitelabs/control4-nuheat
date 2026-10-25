@@ -30,3 +30,7 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - A **Nuheat Thermostat** companion driver that presents each thermostat as a
   native Control4 thermostat: floor temperature, heat setpoint, Heat/Off, and
   Until Next / Permanent holds.
+- Linking the account from the Control4 app with **Get Link** in a thermostat's
+  extras, including before anything is bound: a dealer can install the drivers
+  and leave the sign-in to the customer, and a single thermostat is bound to a
+  single unbound thermostat driver automatically.

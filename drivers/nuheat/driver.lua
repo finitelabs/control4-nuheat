@@ -223,6 +223,41 @@ local function ingestThermostat(device)
   handoff(serial)
 end
 
+--- The companion whose Get Link asked for a sign-in, until the next read of the
+--- account settles whether it can be bound without a dealer.
+--- @type integer|nil
+local gAutoBindCompanion = nil
+
+--- Bind the requesting companion to the account's thermostat when there is
+--- exactly one of each to choose from.
+--- @param devices table[] the thermostats just read
+local function autoBind(devices)
+  local companion = gAutoBindCompanion
+  gAutoBindCompanion = nil
+  if not companion or #devices ~= 1 then
+    return
+  end
+  local unbound = unboundCompanionIds()
+  if #unbound ~= 1 or unbound[1] ~= companion then
+    return
+  end
+  local serial = tostring(devices[1].SerialNumber)
+  local binding = bindings:getDynamicBinding(NS, serial)
+  if not binding or C4:GetBoundConsumerDevices(C4:GetDeviceID(), binding.bindingId) then
+    return
+  end
+  log:info("Binding thermostat %s to Nuheat Thermostat %d", serial, companion)
+  C4:Bind(
+    C4:GetDeviceID(),
+    binding.bindingId,
+    companion,
+    constants.COMPANION_ACCOUNT_BINDING,
+    constants.THERMOSTAT_CLASS
+  )
+  handoff(serial)
+  pushAuth(binding.bindingId)
+end
+
 local function connectedStatus(count)
   return string.format("Connected (%d thermostat%s)", count, count == 1 and "" or "s")
 end
@@ -257,6 +292,7 @@ local function refreshThermostats()
         goOffline(serial)
       end
     end
+    autoBind(devices)
     C4:UpdateProperty("Driver Status", connectedStatus(#devices))
   end, function(err)
     log:warn("Refreshing thermostats failed: %s", err.message)
@@ -545,6 +581,7 @@ function EC.NuheatLinkRequest(tParams)
   if not isUnboundCompanion(companion) then
     return
   end
+  gAutoBindCompanion = companion
   EC.Link_Account()
 end
 

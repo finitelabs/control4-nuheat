@@ -180,8 +180,10 @@ thermostat reconnects.
 
 This works before this driver is bound too, so the first link can be left to the
 customer: with the **Nuheat** account driver in the project, **Get Link** signs
-the account in, and the account driver then finds the thermostats to bind. Until
-it is bound, the section shows the account's link state but no thermostat. With
+the account in, and the account driver then finds the thermostats to bind. If
+the account has one thermostat and this is the only unbound **Nuheat
+Thermostat** driver, the account driver binds it to this driver itself. Until it
+is bound, the section shows the account's link state but no thermostat. With
 more than one **Nuheat** account driver in the project, bind this driver first:
 which account it belongs to is the binding.
 

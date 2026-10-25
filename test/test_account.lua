@@ -86,12 +86,17 @@ end
 local ACCOUNT_ID = C4:GetDeviceID()
 local COMPANION_ID = 200
 local accountIds = { [ACCOUNT_ID] = "Nuheat" }
+local companionIds = { [COMPANION_ID] = "Nuheat Thermostat" }
 C4.GetDevicesByC4iName = function(_, name)
   if name == C4:GetDriverFileName() then
     return accountIds
   elseif name == constants.COMPANION_DRIVER then
-    return { [COMPANION_ID] = "Nuheat Thermostat" }
+    return companionIds
   end
+end
+
+local function companionBoundTo(deviceId)
+  return C4:GetBoundProviderDevice(deviceId, constants.COMPANION_ACCOUNT_BINDING)
 end
 
 local function lastDeviceSend(deviceId)
@@ -198,6 +203,26 @@ local device = JSON:decode(handoff.params.JSON)
 T.eq("carrying the device object", device.SerialNumber, "1234567")
 T.eq("named for the thermostat", device.Room, "Master Bathroom Floor")
 local bindingId = handoff.idBinding
+
+T.section("the companion whose Get Link signed in is bound to the only thermostat")
+T.eq("bound to the account", companionBoundTo(COMPANION_ID), ACCOUNT_ID)
+local connection = ShimConnections()[1]
+T.eq("on the thermostat's binding", connection and connection.providerBinding, bindingId)
+T.eq("with the thermostat class", connection and connection.class, constants.THERMOSTAT_CLASS)
+
+T.section("a later read does not bind it again once unbound")
+C4:Unbind(COMPANION_ID, constants.COMPANION_ACCOUNT_BINDING)
+timers.NuheatPoll.callback()
+T.eq("still unbound", companionBoundTo(COMPANION_ID), 0)
+
+T.section("a Get Link with two unbound companions binds neither")
+companionIds = { [COMPANION_ID] = "Nuheat Thermostat", [COMPANION_ID + 1] = "Nuheat Thermostat 2" }
+EC.NuheatLinkRequest({ DEVICE = tostring(COMPANION_ID) })
+timers.NuheatPoll.callback()
+T.eq("the requester stays unbound", companionBoundTo(COMPANION_ID), 0)
+T.eq("and so does the other", companionBoundTo(COMPANION_ID + 1), 0)
+companionIds = { [COMPANION_ID] = "Nuheat Thermostat" }
+timers["OAuth_Nuheat_Timer_GetCodeStatusExpired"].callback()
 
 T.section("a companion's write is sent as a ThermostatUpdateModel")
 requests = {}

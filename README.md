@@ -133,8 +133,10 @@ is an outline of the basic steps for your convenience.
 
 The link can also be left to the customer: add the "Nuheat" driver and a "Nuheat
 Thermostat" driver per thermostat, and **Get Link** in a thermostat's extras in
-the Control4 app signs the account in. Bind the discovered thermostats once
-`Driver Status` shows them.
+the Control4 app signs the account in. When the account has one thermostat and
+the project one unbound "Nuheat Thermostat" driver, the account driver binds
+them itself; otherwise bind the discovered thermostats once `Driver Status`
+shows them.
 
 Each companion driver includes its own documentation accessible from within
 Composer Pro. Refer to the **Nuheat Thermostat** driver documentation for its
@@ -279,3 +281,7 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - A **Nuheat Thermostat** companion driver that presents each thermostat as a
   native Control4 thermostat: floor temperature, heat setpoint, Heat/Off, and
   Until Next / Permanent holds.
+- Linking the account from the Control4 app with **Get Link** in a thermostat's
+  extras, including before anything is bound: a dealer can install the drivers
+  and leave the sign-in to the customer, and a single thermostat is bound to a
+  single unbound thermostat driver automatically.
