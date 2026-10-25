@@ -315,7 +315,8 @@ local function addThermostats()
     local item = table.remove(pending, 1)
     if not item then
       gAdding = false
-      log:info("Add Thermostats finished")
+      log:info("Add Thermostats finished; refreshing Navigators")
+      RefreshNavs()
       C4:UpdateProperty("Driver Status", connectedStatus(TableLength(gState.devices)))
       return
     end

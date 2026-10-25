@@ -133,6 +133,11 @@ C4.SendToDevice = function(_, deviceId, command, params)
   end
 end
 
+local navRefreshes = 0
+RefreshNavs = function()
+  navRefreshes = navRefreshes + 1
+end
+
 local function companionOf(serial)
   local binding = require("lib.bindings"):getDynamicBinding(constants.BINDING_NAMESPACE, serial)
   local id = next(C4:GetBoundConsumerDevices(ME, binding.bindingId) or {})
@@ -199,6 +204,7 @@ T.eq("Master Bathroom Floor goes in Master Bathroom, not Bathroom", hidden[bathP
 T.eq("hidden in Bathroom", hidden[bathProxy][42], true)
 T.eq("named for the thermostat", names[bathProxy], "Master Bathroom Floor")
 T.eq("Driver Status when done", props["Driver Status"], "Connected (3 thermostats)")
+T.eq("Navigators are refreshed once", navRefreshes, 1)
 
 T.section("running it again adds nothing")
 EC.Add_Thermostats()
