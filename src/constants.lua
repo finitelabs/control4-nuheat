@@ -4,8 +4,11 @@ local M = {}
 --- Nuheat OpenAPI (North America) and its OAuth2 / OpenID identity server. v2
 --- serves both Signature and Conductor; v1 serves Signature only.
 M.API_BASE = "https://api.nam.mynuheat.com"
-M.AUTH_ENDPOINT = "https://identity.nam.mynuheat.com/connect/authorize"
-M.TOKEN_ENDPOINT = "https://identity.nam.mynuheat.com/connect/token"
+--- Control4's redirect service accepts only the authorize URL registered with
+--- the C4 OAuth API key, so it must stay this exact string (identity.nam serves
+--- the same issuer but is refused with a 403).
+M.AUTH_ENDPOINT = "https://identity.mynuheat.com/connect/authorize"
+M.TOKEN_ENDPOINT = "https://identity.mynuheat.com/connect/token"
 M.SCOPES = { "openid", "openapi", "offline_access" }
 
 --- Build secrets, substituted by tools/preprocess.py from .env / CI secrets (see
