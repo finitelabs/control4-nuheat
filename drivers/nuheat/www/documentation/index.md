@@ -45,11 +45,11 @@ so your Nuheat password is never entered in Control4.
   - [Nuheat Thermostat](#nuheat-thermostat)
 - [Compatibility](#compatibility)
 - [Installer Setup](#installer-setup)
-  - [Linking the Homeowner's Nuheat Account](#linking-the-homeowners-nuheat-account)
   <!-- #ifdef DRIVERCENTRAL -->
   - [DriverCentral Cloud Setup](#drivercentral-cloud-setup)
   <!-- #endif -->
   - [Driver Installation](#driver-installation)
+  - [Linking the Homeowner's Nuheat Account](#linking-the-homeowners-nuheat-account)
   - [Driver Setup](#driver-setup)
     - [Driver Properties](#driver-properties)
       - [Cloud Settings](#cloud-settings)
@@ -214,6 +214,10 @@ You can also add the "Nuheat Thermostat" drivers yourself and bind each one to a
 thermostat connection on the "Nuheat" driver in the "Connections" tab; Add
 Thermostats then connects any unbound ones it finds before adding new drivers.
 
+Each companion driver includes its own documentation accessible from within
+Composer Pro. Refer to the **Nuheat Thermostat** driver documentation for its
+property, connection, and programming reference.
+
 ## Linking the Homeowner's Nuheat Account
 
 The Nuheat account is usually the homeowner's, so you don't need their password.
@@ -228,10 +232,6 @@ thermostats are added, the homeowner can also link the account themselves from
 the Control4 app: open a Nuheat thermostat, go to **Extras**, press **Get
 Link**, and open the link shown. Each thermostat shows "Sign in to Nuheat from
 Extras" whenever the account is not linked.
-
-Each companion driver includes its own documentation accessible from within
-Composer Pro. Refer to the **Nuheat Thermostat** driver documentation for its
-property, connection, and programming reference.
 
 ## Driver Setup
 
