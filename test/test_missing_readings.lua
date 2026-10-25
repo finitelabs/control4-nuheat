@@ -6,7 +6,7 @@
 --   ./test/run_test.sh test_missing_readings.lua
 --
 -- Every number this driver reads comes from cloud JSON or from the proxy, so it
--- can be absent, JSON-null or non-numeric: the OpenAPI marks setPointTemp
+-- can be absent, JSON-null or non-numeric: the OpenAPI marks a setpoint
 -- nullable, and a stale-handoff merge copies Temperature across
 -- unconditionally. `tonumber` also yields infinity for "1e999", which passes every
 -- `== nil` test downstream.
@@ -54,8 +54,7 @@ local function device(overrides)
     Temperature = 2150,
     SetPointTemp = 2200,
     Heating = true,
-    ScheduleMode = 1,
-    OperatingMode = 1,
+    Mode = 1,
   }
   for k, v in pairs(overrides or {}) do
     d[k] = v ~= ABSENT and v or nil

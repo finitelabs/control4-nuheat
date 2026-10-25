@@ -1,7 +1,7 @@
 --- Nuheat thermostat state model + Control4 translation helpers.
 ---
 --- Pure logic (no C4/HTTP side effects) so it is unit-testable: temperature
---- scaling between Nuheat's wire format and Celsius/Fahrenheit, ScheduleMode ↔
+--- scaling between Nuheat's wire format and Celsius/Fahrenheit, mode ↔
 --- HVAC/hold mapping, capability derivation from a device object, and building
 --- the settings the account writes back. The device object is the one
 --- nuheat.client builds from the OpenAPI's ThermostatModel.
@@ -12,13 +12,12 @@ local M = {}
 
 --- Nuheat wire temperatures are Celsius × 100 (hundredths of a degree C).
 local NUHEAT_SCALE = 100
---- OpenAPI eScheduleMode: follow the schedule, hold until the next schedule
---- event (or a HoldSetPointDateTime within 23 hours), or hold indefinitely.
-M.MODE = { AUTO = 1, UNTIL = 2, PERMANENT = 3 }
---- OpenAPI eOperatingMode. In Manual the thermostat ignores its schedule and
---- ScheduleMode, and only the setpoint can change.
-M.OPERATING = { AUTO = 1, MANUAL = 2 }
---- Away/Off is encoded as Permanent hold at the 5.00 °C minimum (== 500).
+--- OpenAPI v2 thermostat mode: follow the schedule, hold until the next
+--- schedule event (or a holdUntil within 24 hours), or Manual, which holds
+--- indefinitely and is the API's permanent hold.
+M.MODE = { AUTO = 1, HOLD = 2, MANUAL = 3 }
+--- Standby (Off) is Manual at the 5.00 °C minimum (== 500), as Chemelex
+--- documents it; the Nuheat app shows that as Standby.
 M.OFF_SENTINEL = 500
 --- Setpoint bounds. The OpenAPI reports none, so these are Nuheat's floor
 --- range: 5–40 °C / 41–104 °F.
@@ -95,8 +94,7 @@ end
 --- @field temperatureC number|nil Current floor temperature, °C
 --- @field setpointC number|nil Active setpoint, °C
 --- @field heating boolean HVAC actively heating
---- @field scheduleMode integer|nil Nuheat ScheduleMode (1/2/3)
---- @field manual boolean Operating Mode Manual (schedule and holds disabled)
+--- @field mode integer|nil Nuheat v2 mode (1/2/3)
 --- @field minC number
 --- @field maxC number
 --- @field isOff boolean Away/Off (permanent hold at minimum)
@@ -105,9 +103,8 @@ end
 --- @param v table
 --- @return NuheatState
 function M.fromDevice(v)
-  local scheduleMode = tonumber(v.ScheduleMode)
+  local mode = tonumber(v.Mode)
   local setpoint = tonumber(v.SetPointTemp)
-  local manual = tonumber(v.OperatingMode) == M.OPERATING.MANUAL
   return {
     serialNumber = tostring(v.SerialNumber),
     online = v.Online == true,
@@ -115,11 +112,10 @@ function M.fromDevice(v)
     temperatureC = M.nuheatToC(v.Temperature),
     setpointC = M.nuheatToC(setpoint),
     heating = v.Heating == true,
-    scheduleMode = scheduleMode,
-    manual = manual,
+    mode = mode,
     minC = M.MIN_C,
     maxC = M.MAX_C,
-    isOff = not manual and scheduleMode == M.MODE.PERMANENT and setpoint == M.OFF_SENTINEL,
+    isOff = mode == M.MODE.MANUAL and setpoint == M.OFF_SENTINEL,
   }
 end
 
@@ -132,8 +128,7 @@ end
 --- @return table capabilities
 function M.capabilities(state)
   return {
-    -- Off is a permanent hold, which Manual operating mode ignores.
-    allowedHvacModes = state.manual and "Heat" or "Off,Heat",
+    allowedHvacModes = "Off,Heat",
     -- Heat-setpoint model (like the original Nuheat driver): a single Heat
     -- setpoint, not the single_setpoint model.
     hasSingleSetpoint = false,
@@ -163,15 +158,13 @@ end
 --- until the next schedule event; "Permanent" holds indefinitely.
 M.HOLD_MODES = "Off,Until Next,Permanent"
 
---- C4 hold mode from device state. Manual operating mode has no holds.
+--- C4 hold mode from device state.
 --- @param state NuheatState
 --- @return string
 function M.holdMode(state)
-  if state.manual then
-    return "Off"
-  elseif state.scheduleMode == M.MODE.UNTIL then
+  if state.mode == M.MODE.HOLD then
     return "Until Next"
-  elseif state.scheduleMode == M.MODE.PERMANENT and not state.isOff then
+  elseif state.mode == M.MODE.MANUAL and not state.isOff then
     return "Permanent"
   end
   return "Off"
@@ -205,30 +198,28 @@ end
 --- @param settings table
 --- @return integer|nil
 function M.currentMode(settings)
-  return tonumber(settings.ScheduleMode)
+  return tonumber(settings.Mode)
 end
 
---- Set the heat setpoint (°C). Enters a temporary hold until the next schedule
---- event, unless the thermostat already holds permanently, which keeps the
---- permanent hold at the new temperature. In Manual operating mode only the
---- setpoint changes.
+--- Set the heat setpoint (°C). Holds it until the next schedule event, unless
+--- the thermostat already holds permanently (Manual), which keeps holding at the
+--- new temperature. A setpoint from Standby is a hold, which turns heating back on.
 --- @param settings table Current device object (mutated + returned).
 --- @param celsius number
 --- @return table settings
 function M.applySetpoint(settings, celsius)
+  local permanent = M.currentMode(settings) == M.MODE.MANUAL and tonumber(settings.SetPointTemp) ~= M.OFF_SENTINEL
   settings.SetPointTemp = M.cToNuheat(M.normalize(celsius))
-  settings.HoldSetPointDateTime = nil
-  if tonumber(settings.OperatingMode) ~= M.OPERATING.MANUAL then
-    settings.ScheduleMode = M.currentMode(settings) == M.MODE.PERMANENT and M.MODE.PERMANENT or M.MODE.UNTIL
-  end
+  settings.HoldUntil = nil
+  settings.Mode = permanent and M.MODE.MANUAL or M.MODE.HOLD
   return settings
 end
 
 --- C4 hold-mode string -> schedule mode. "Off" resumes the schedule (Auto).
 M.HOLD_TO_MODE = {
   ["Off"] = M.MODE.AUTO,
-  ["Until Next"] = M.MODE.UNTIL,
-  ["Permanent"] = M.MODE.PERMANENT,
+  ["Until Next"] = M.MODE.HOLD,
+  ["Permanent"] = M.MODE.MANUAL,
 }
 
 --- Apply a C4 hold-mode change, holding the current setpoint.
@@ -238,24 +229,24 @@ M.HOLD_TO_MODE = {
 function M.applyHold(settings, c4HoldMode)
   local mode = M.HOLD_TO_MODE[c4HoldMode]
   if mode then
-    settings.ScheduleMode = mode
-    settings.HoldSetPointDateTime = nil
+    settings.Mode = mode
+    settings.HoldUntil = nil
   end
   return settings
 end
 
---- Set HVAC mode. "Heat" resumes the schedule (Auto); "Off" is a permanent hold
---- at the minimum (Away).
+--- Set HVAC mode. "Heat" resumes the schedule (Auto); "Off" is Standby, Manual
+--- at the minimum.
 --- @param settings table
 --- @param mode string "Heat" | "Off"
 --- @return table settings
 function M.applyHvacMode(settings, mode)
-  settings.HoldSetPointDateTime = nil
+  settings.HoldUntil = nil
   if mode == "Off" then
     settings.SetPointTemp = M.OFF_SENTINEL
-    settings.ScheduleMode = M.MODE.PERMANENT
+    settings.Mode = M.MODE.MANUAL
   else
-    settings.ScheduleMode = M.MODE.AUTO
+    settings.Mode = M.MODE.AUTO
   end
   return settings
 end

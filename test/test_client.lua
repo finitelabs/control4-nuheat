@@ -22,22 +22,18 @@ constants.C4_OAUTH_PRODUCTION = ""
 
 local Client = require("nuheat.client")
 
---- GET /api/v1/Thermostat as a live account answered it.
-local V1_THERMOSTATS = {
+--- GET /api/v2/Thermostat as a live account answered it.
+local V2_THERMOSTATS = {
   {
     serialNumber = "1234567",
     name = "Master Bathroom Floor",
-    setPointTemp = 2333,
-    scheduleMode = 1,
-    holdSetPointDateTime = nil,
-    groupId = "11111111-2222-3333-4444-555555555555",
-    swVersion = "2.0.1",
-    online = false,
-    operatingMode = 1,
-    isHeating = false,
     currentTemperature = 2378,
-    tzOffset = "-5:00",
-    error = nil,
+    online = false,
+    isHeating = false,
+    setPointTemperature = 2333,
+    holdUntil = nil,
+    mode = 1,
+    errorState = nil,
   },
 }
 
@@ -92,61 +88,65 @@ do
 end
 
 T.section("ThermostatModel becomes the drivers' device object")
-local device = Client.toDevice(V1_THERMOSTATS[1])
+local device = Client.toDevice(V2_THERMOSTATS[1])
 T.eq("serial", device.SerialNumber, "1234567")
 T.eq("room from the thermostat's name", device.Room, "Master Bathroom Floor")
 T.eq("temperature in hundredths of a degree C", device.Temperature, 2378)
 T.eq("setpoint", device.SetPointTemp, 2333)
-T.eq("schedule mode", device.ScheduleMode, 1)
-T.eq("operating mode", device.OperatingMode, 1)
+T.eq("mode", device.Mode, 1)
 T.eq("online", device.Online, false)
 T.eq("heating", device.Heating, false)
-T.eq("time zone offset", device.TzOffset, "-5:00")
 
-T.section("getThermostats reads v1 with the bearer token")
+T.section("getThermostats reads v2 with the bearer token")
 requests = {}
 respond = function()
-  return nil, 200, {}, V1_THERMOSTATS
+  return nil, 200, {}, V2_THERMOSTATS
 end
 local client = signedIn()
 local got = settle(client:getThermostats())
 T.eq("one GET", #requests, 1)
-T.eq("to the v1 list", requests[1].url, "https://api.mynuheat.com/api/v1/Thermostat")
+T.eq("to the v2 list on the North America host", requests[1].url, "https://api.nam.mynuheat.com/api/v2/Thermostat")
 T.eq("with the access token", requests[1].headers.Authorization, "Bearer access-1")
 T.eq("one device", #got.value, 1)
 T.eq("translated", got.value[1].Room, "Master Bathroom Floor")
 
 respond = function()
-  return nil, 200, {}, { V1_THERMOSTATS[1], { name = "no serial" }, "junk" }
+  return nil, 200, {}, { V2_THERMOSTATS[1], { name = "no serial" }, "junk" }
 end
 T.eq("entries without a serial are skipped", #settle(client:getThermostats()).value, 1)
 
-T.section("setThermostat sends a ThermostatUpdateModel")
-requests = {}
+T.section("setThermostat sends the v2 Mode request for the device's mode")
 respond = function()
   return nil, 204, {}, nil
 end
-local write = Client.toDevice(V1_THERMOSTATS[1])
-write.SetPointTemp = 2500
-write.ScheduleMode = 2
-got = settle(client:setThermostat(write))
-T.eq("a PUT", requests[1].method, "PUT")
-T.eq("to v1 Thermostat", requests[1].url, "https://api.mynuheat.com/api/v1/Thermostat")
-T.eq("as JSON", requests[1].headers["Content-Type"], "application/json")
-T.eq("carrying the serial, setpoint and mode only", JSON:decode(requests[1].data), {
-  serialNumber = "1234567",
-  setPointTemp = 2500,
-  scheduleMode = 2,
-})
-T.eq("resolves with the device as written", got.value.SetPointTemp, 2500)
-
-write.HoldSetPointDateTime = "2026-10-24T05:00:00Z"
-settle(client:setThermostat(write))
+local function written(mode, overrides)
+  requests = {}
+  local d = Client.toDevice(V2_THERMOSTATS[1])
+  d.Mode, d.SetPointTemp = mode, 2500
+  for k, v in pairs(overrides or {}) do
+    d[k] = v
+  end
+  local result = settle(client:setThermostat(d))
+  return requests[1], requests[1] and JSON:decode(requests[1].data), result
+end
+local req, body, result = written(Client.MODE.HOLD)
+T.eq("a PUT", req.method, "PUT")
+T.eq("Hold goes to Mode/Hold", req.url, "https://api.nam.mynuheat.com/api/v2/Mode/Hold")
+T.eq("as JSON", req.headers["Content-Type"], "application/json")
+T.eq("with the absolute temperature", body, { serialNumber = "1234567", temperature = 2500, temperatureType = 0 })
+T.eq("resolves with the device as written", result.value.SetPointTemp, 2500)
+req, body = written(Client.MODE.HOLD, { HoldUntil = "2026-10-24T05:00:00Z" })
+T.eq("a hold end time goes when set", body.holdUntil, "2026-10-24T05:00:00Z")
+req, body = written(Client.MODE.MANUAL)
+T.eq("Manual goes to Mode/Manual", req.url, "https://api.nam.mynuheat.com/api/v2/Mode/Manual")
 T.eq(
-  "a hold end time goes when set",
-  JSON:decode(requests[#requests].data).holdSetPointDateTime,
-  "2026-10-24T05:00:00Z"
+  "with the temperature and no end time",
+  body,
+  { serialNumber = "1234567", temperature = 2500, temperatureType = 0 }
 )
+req, body = written(Client.MODE.AUTO)
+T.eq("Auto goes to Mode/Auto", req.url, "https://api.nam.mynuheat.com/api/v2/Mode/Auto")
+T.eq("with the serial only", body, { serialNumber = "1234567" })
 
 T.section("a 401 refreshes the token and rejects")
 requests = {}

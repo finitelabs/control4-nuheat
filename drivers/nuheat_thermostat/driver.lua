@@ -53,7 +53,7 @@ local gReportedScale = nil
 --- intended schedule mode is remembered so that (1) handoffs still showing the
 --- old mode don't snap the UI back, and (2) a retry loop re-sends until the cloud
 --- confirms or the timeout accepts reality.
---- @type { mode: integer, ts: integer }|nil
+--- @type { mode: integer, setpoint: number|nil, ts: integer }|nil
 local gPending = nil
 --- Stop trusting the optimistic state after this long (cloud won: accept reality).
 local CONFIRM_TIMEOUT_S = 60
@@ -154,7 +154,14 @@ local function markPending()
   if not gDevice then
     return
   end
-  gPending = { mode = Thermostat.currentMode(gDevice), ts = os.time() }
+  local mode = Thermostat.currentMode(gDevice)
+  gPending = {
+    mode = mode,
+    -- Auto follows the schedule's setpoint, not the one written, so only a hold's
+    -- setpoint has to read back too.
+    setpoint = mode ~= Thermostat.MODE.AUTO and tonumber(gDevice.SetPointTemp) or nil,
+    ts = os.time(),
+  }
   scheduleConfirm()
 end
 
@@ -249,17 +256,12 @@ function RFP.DEC_SETPOINT_HEAT(idBinding)
   adjustSetpoint(idBinding, -1)
 end
 
---- Set Heat or Off. Off is a permanent hold, which Manual operating mode
---- ignores, so it is refused there.
+--- Set Heat or Off (Standby).
 --- @param idBinding integer
 --- @param mode string
 local function setHvacMode(idBinding, mode)
   if mode ~= "Off" and mode ~= "Heat" then
     log:warn("Ignoring an HVAC mode this thermostat does not have: %s", tostring(mode))
-    return
-  end
-  if mode == "Off" and gState and gState.manual then
-    log:warn("Ignoring Off: the thermostat is in Manual operating mode")
     return
   end
   applyAndSend(idBinding, function()
@@ -397,7 +399,9 @@ function RFP.updateThermostat(idBinding, _strCommand, tParams)
     return
   end
   if gPending and (os.time() - gPending.ts) < CONFIRM_TIMEOUT_S then
-    if Thermostat.currentMode(device) == gPending.mode then
+    local confirmed = Thermostat.currentMode(device) == gPending.mode
+      and (gPending.setpoint == nil or tonumber(device.SetPointTemp) == gPending.setpoint)
+    if confirmed then
       -- Cloud caught up to our write; trust reality from here on.
       gPending = nil
       gDevice = device

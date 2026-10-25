@@ -2,11 +2,11 @@
 ---
 --- Signs in with OAuth2 through Control4's redirect service (drivers-common-public
 --- auth_code_grant), which keeps the refresh token encrypted in persistent storage
---- and refreshes it on its own. Reads and writes thermostats through the v1 API
---- and translates its models to and from the device object the drivers share:
---- { SerialNumber, Room, Online, Heating, Temperature, SetPointTemp, ScheduleMode,
---- OperatingMode, HoldSetPointDateTime, GroupId, SwVersion, TzOffset, Error },
---- with temperatures in hundredths of a degree Celsius as the API sends them.
+--- and refreshes it on its own. Reads and writes thermostats through the v2 API
+--- and translates the v2 models to and from the device object the drivers share:
+--- { SerialNumber, Room, Online, Heating, Temperature, SetPointTemp, Mode,
+--- HoldUntil, Error }, with temperatures in hundredths of a degree Celsius as the
+--- API sends them.
 
 local deferred = require("deferred")
 local http = require("lib.http")
@@ -141,7 +141,11 @@ end
 
 -- ─── Model translation ─────────────────────────────────────────────────────
 
---- v1 ThermostatModel → the drivers' device object.
+--- v2 thermostat modes: follow the schedule, hold until the next schedule event
+--- (or a holdUntil within 24 hours), or hold indefinitely.
+Client.MODE = { AUTO = 1, HOLD = 2, MANUAL = 3 }
+
+--- v2 ThermostatModel → the drivers' device object.
 --- @param m table
 --- @return table
 function Client.toDevice(m)
@@ -152,32 +156,35 @@ function Client.toDevice(m)
     Online = m.online == true,
     Heating = m.isHeating == true,
     Temperature = m.currentTemperature,
-    SetPointTemp = m.setPointTemp,
-    ScheduleMode = m.scheduleMode,
-    OperatingMode = m.operatingMode,
-    HoldSetPointDateTime = m.holdSetPointDateTime,
-    GroupId = m.groupId,
-    SwVersion = m.swVersion,
-    TzOffset = m.tzOffset,
-    Error = m.error,
+    SetPointTemp = m.setPointTemperature,
+    Mode = m.mode,
+    HoldUntil = m.holdUntil,
+    Error = m.errorState,
   }
 end
 
---- The drivers' device object → v1 ThermostatUpdateModel. A hold's end time is
---- sent only when one is set; without it a temporary hold lasts until the next
---- schedule event.
+--- The drivers' device object → the v2 Mode request that applies it: the path
+--- and its body. Temperatures are absolute (temperatureType 0).
 --- @param device table
---- @return table
-function Client.toUpdate(device)
-  local update = {
-    serialNumber = device.SerialNumber,
-    setPointTemp = tonumber(device.SetPointTemp),
-    scheduleMode = tonumber(device.ScheduleMode),
-  }
-  if type(device.HoldSetPointDateTime) == "string" and device.HoldSetPointDateTime ~= "" then
-    update.holdSetPointDateTime = device.HoldSetPointDateTime
+--- @return string path
+--- @return table body
+function Client.toModeRequest(device)
+  local mode = tonumber(device.Mode)
+  if mode == Client.MODE.AUTO then
+    return "/api/v2/Mode/Auto", { serialNumber = device.SerialNumber }
   end
-  return update
+  local body = {
+    serialNumber = device.SerialNumber,
+    temperature = tonumber(device.SetPointTemp),
+    temperatureType = 0,
+  }
+  if mode == Client.MODE.MANUAL then
+    return "/api/v2/Mode/Manual", body
+  end
+  if type(device.HoldUntil) == "string" and device.HoldUntil ~= "" then
+    body.holdUntil = device.HoldUntil
+  end
+  return "/api/v2/Mode/Hold", body
 end
 
 -- ─── Requests ──────────────────────────────────────────────────────────────
@@ -223,7 +230,7 @@ end
 --- Every thermostat on the account.
 --- @return Deferred<table[], table>
 function Client:getThermostats()
-  return self:_request("GET", "/api/v1/Thermostat"):next(function(list)
+  return self:_request("GET", "/api/v2/Thermostat"):next(function(list)
     local devices = {}
     for _, model in ipairs(type(list) == "table" and list or {}) do
       if type(model) == "table" and model.serialNumber ~= nil then
@@ -234,13 +241,15 @@ function Client:getThermostats()
   end)
 end
 
---- Write a device's setpoint and schedule mode. Resolves with the device as
---- written: the API answers 204 with no body, and the cloud applies a write over
---- seconds, so a read straight after would mostly return the old state.
+--- Write a device's mode and setpoint through the matching v2 Mode request.
+--- Resolves with the device as written: the API answers 204 with no body, and
+--- the cloud applies a write over seconds, so a read straight after would mostly
+--- return the old state.
 --- @param device table
 --- @return Deferred<table, table>
 function Client:setThermostat(device)
-  return self:_request("PUT", "/api/v1/Thermostat", Client.toUpdate(device)):next(function()
+  local path, body = Client.toModeRequest(device)
+  return self:_request("PUT", path, body):next(function()
     return device
   end)
 end

@@ -1,10 +1,11 @@
 --- Driver-wide constants for control4-nuheat.
 local M = {}
 
---- Nuheat OpenAPI and its OAuth2 / OpenID identity server.
-M.API_BASE = "https://api.mynuheat.com"
-M.AUTH_ENDPOINT = "https://identity.mynuheat.com/connect/authorize"
-M.TOKEN_ENDPOINT = "https://identity.mynuheat.com/connect/token"
+--- Nuheat OpenAPI (North America) and its OAuth2 / OpenID identity server. v2
+--- serves both Signature and Conductor; v1 serves Signature only.
+M.API_BASE = "https://api.nam.mynuheat.com"
+M.AUTH_ENDPOINT = "https://identity.nam.mynuheat.com/connect/authorize"
+M.TOKEN_ENDPOINT = "https://identity.nam.mynuheat.com/connect/token"
 M.SCOPES = { "openid", "openapi", "offline_access" }
 
 --- Build secrets, substituted by tools/preprocess.py from .env / CI secrets (see

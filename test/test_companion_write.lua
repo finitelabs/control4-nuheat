@@ -40,8 +40,7 @@ local function device(overrides)
     Temperature = 2150,
     SetPointTemp = 2200,
     Heating = false,
-    ScheduleMode = 1,
-    OperatingMode = 1,
+    Mode = 1,
   }
   for k, v in pairs(overrides or {}) do
     d[k] = v
@@ -83,7 +82,7 @@ timers.NuheatConfirm.callback()
 T.eq("the write is sent again", writesToAccount(), 2)
 
 T.section("the read that carries the change ends the wait")
-handOver(device({ SetPointTemp = 2500, ScheduleMode = 2 }))
+handOver(device({ SetPointTemp = 2500, Mode = 2 }))
 T.eq("25 C", lastSetpoint(), 25)
 sends = {}
 timers.NuheatConfirm.callback()
@@ -132,21 +131,25 @@ RFP.goOffline(ACCOUNT_BINDING, "goOffline")
 handOver(device())
 sends = {}
 RFP.SET_MODE_HVAC(PROXY_BINDING, "SET_MODE_HVAC", { MODE = "Off" })
-T.eq("Off holds permanently", lastWrite() and lastWrite().ScheduleMode, 3)
+T.eq("Off is Manual", lastWrite() and lastWrite().Mode, 3)
 T.eq("at 5 C", lastWrite() and lastWrite().SetPointTemp, 500)
 sends = {}
 RFP.SET_MODE_HVAC(PROXY_BINDING, "SET_MODE_HVAC", { MODE = "Heat" })
-T.eq("Heat resumes the schedule", lastWrite() and lastWrite().ScheduleMode, 1)
+T.eq("Heat resumes the schedule", lastWrite() and lastWrite().Mode, 1)
 sends = {}
 RFP.SET_MODE_HVAC(PROXY_BINDING, "SET_MODE_HVAC", { MODE = "Cool" })
 T.eq("a mode it does not have writes nothing", lastWrite(), nil)
+T.section("a setpoint change within a hold waits for the new setpoint")
 RFP.goOffline(ACCOUNT_BINDING, "goOffline")
-handOver(device({ OperatingMode = 2 }))
+handOver(device({ Mode = 2, SetPointTemp = 2200 }))
 sends = {}
-RFP.SET_MODE_HVAC(PROXY_BINDING, "SET_MODE_HVAC", { MODE = "Off" })
-T.eq("Off in Manual operating mode writes nothing", lastWrite(), nil)
+RFP.SET_SCALE(PROXY_BINDING, "SET_SCALE", { SCALE = "CELSIUS" })
+RFP.SET_SETPOINT_HEAT(PROXY_BINDING, "SET_SETPOINT_HEAT", { CELSIUS = "25" })
+handOver(device({ Mode = 2, SetPointTemp = 2200 }))
+T.eq("a read still in Hold at 22 C does not end the wait", lastSetpoint(), 25)
+handOver(device({ Mode = 2, SetPointTemp = 2500 }))
 sends = {}
-RFP.SET_MODE_OFF(PROXY_BINDING, "SET_MODE_OFF", {})
-T.eq("nor does SET_MODE_OFF", lastWrite(), nil)
+timers.NuheatConfirm.callback()
+T.eq("the read at 25 C does", writesToAccount(), 0)
 
 T.finish()

@@ -25,13 +25,11 @@ constants.C4_OAUTH_PRODUCTION = ""
 local THERMOSTAT = {
   serialNumber = "1234567",
   name = "Master Bathroom Floor",
-  setPointTemp = 2333,
-  scheduleMode = 1,
+  setPointTemperature = 2333,
+  mode = 1,
   online = true,
-  operatingMode = 1,
   isHeating = false,
   currentTemperature = 2378,
-  tzOffset = "-5:00",
 }
 
 -- Loaded before the stubs below, which would otherwise be redefined when the
@@ -55,9 +53,9 @@ urlDo = function(method, url, data, headers, callback, context)
     code, body = 200, { code = "auth-code" }
   elseif url == constants.TOKEN_ENDPOINT then
     code, body = 200, { access_token = "access-1", refresh_token = "refresh-1", expires_in = 3600 }
-  elseif url == constants.API_BASE .. "/api/v1/Thermostat" and method == "GET" then
+  elseif url == constants.API_BASE .. "/api/v2/Thermostat" and method == "GET" then
     code, body, responseHeaders = apiStatus, apiStatus == 200 and thermostats or nil, apiHeaders
-  elseif url == constants.API_BASE .. "/api/v1/Thermostat" and method == "PUT" then
+  elseif url:find("^" .. constants.API_BASE:gsub("%p", "%%%0") .. "/api/v2/Mode/") and method == "PUT" then
     code = 204
   end
   callback(nil, code, responseHeaders, body, context, url)
@@ -163,14 +161,14 @@ local bindingId = handoff.idBinding
 T.section("a companion's write is sent as a ThermostatUpdateModel")
 requests = {}
 device.SetPointTemp = 2500
-device.ScheduleMode = 2
+device.Mode = 2
 RFP.setThermostat(bindingId, "setThermostat", { JSON = JSON:encode(device) })
-local put = lastRequest("PUT", "/api/v1/Thermostat$")
+local put = lastRequest("PUT", "/api/v2/Mode/Hold$")
 T.truthy("one PUT", put)
 T.eq(
   "with the new setpoint and hold",
   JSON:decode(put.data),
-  { serialNumber = "1234567", setPointTemp = 2500, scheduleMode = 2 }
+  { serialNumber = "1234567", temperature = 2500, temperatureType = 0 }
 )
 T.eq("the write is not echoed to the companion", lastSend("updateThermostat"), handoff)
 T.truthy("and a read-back is scheduled", timers.NuheatReadback)

@@ -162,11 +162,12 @@ Control4.
 Setting a temperature in Control4 holds it until the next schedule event, or
 keeps a permanent hold at the new temperature if one is active. The hold mode
 can also be set directly: **Until Next**, **Permanent**, or **Off** to resume
-the schedule. Switching the mode to **Off** holds the floor at 5 °C (41 °F)
-until it is switched back to **Heat**, which resumes the schedule.
+the schedule. Switching the HVAC mode back to **Heat** resumes the schedule.
 
-A thermostat in Manual operating mode (set on the thermostat or in the Nuheat
-app) ignores its schedule and holds; only the setpoint can be changed.
+**Permanent** is the thermostat's Manual mode, which holds until something
+changes it. **Off** is Standby: Manual at 5 °C (41 °F), which the Nuheat app
+shows as Standby. Setting a temperature from Standby holds it until the next
+schedule event.
 
 # <span style="color:#FF0547">Linking from the Control4 App</span>
 
