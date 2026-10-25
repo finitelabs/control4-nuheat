@@ -69,15 +69,6 @@ CancelTimer = function(name)
   timers[name] = nil
 end
 
--- SaltedEncrypt asks for a cipher the shim does not model; persistence of the
--- refresh token is auth_code_grant's and covered by its own test.
-SaltedEncrypt = function(key, plaintext)
-  return plaintext
-end
-SaltedDecrypt = function(key, ciphertext)
-  return ciphertext
-end
-
 local props = {}
 C4.UpdateProperty = function(_, name, value)
   props[name] = value
