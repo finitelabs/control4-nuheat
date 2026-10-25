@@ -14,6 +14,7 @@ local log = require("lib.logging")
 local JSON = require("JSON")
 local constants = require("constants")
 local OAuth = require("drivers-common-public.module.auth_code_grant")
+local Thermostat = require("nuheat.thermostat")
 
 --- @class NuheatClient
 --- @field grant table|nil The auth_code_grant object, once start() has run.
@@ -141,10 +142,6 @@ end
 
 -- ─── Model translation ─────────────────────────────────────────────────────
 
---- v2 thermostat modes: follow the schedule, hold until the next schedule event
---- (or a holdUntil within 24 hours), or hold indefinitely.
-Client.MODE = { AUTO = 1, HOLD = 2, MANUAL = 3 }
-
 --- v2 ThermostatModel → the drivers' device object.
 --- @param m table
 --- @return table
@@ -170,7 +167,7 @@ end
 --- @return table body
 function Client.toModeRequest(device)
   local mode = tonumber(device.Mode)
-  if mode == Client.MODE.AUTO then
+  if mode == Thermostat.MODE.AUTO then
     return "/api/v2/Mode/Auto", { serialNumber = device.SerialNumber }
   end
   local body = {
@@ -178,7 +175,7 @@ function Client.toModeRequest(device)
     temperature = tonumber(device.SetPointTemp),
     temperatureType = 0,
   }
-  if mode == Client.MODE.MANUAL then
+  if mode == Thermostat.MODE.MANUAL then
     return "/api/v2/Mode/Manual", body
   end
   if type(device.HoldUntil) == "string" and device.HoldUntil ~= "" then

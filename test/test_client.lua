@@ -21,6 +21,7 @@ constants.C4_LINK_API_KEY = ""
 constants.C4_OAUTH_PRODUCTION = ""
 
 local Client = require("nuheat.client")
+local MODE = require("nuheat.thermostat").MODE
 
 --- GET /api/v2/Thermostat as a live account answered it.
 local V2_THERMOSTATS = {
@@ -129,22 +130,22 @@ local function written(mode, overrides)
   local result = settle(client:setThermostat(d))
   return requests[1], requests[1] and JSON:decode(requests[1].data), result
 end
-local req, body, result = written(Client.MODE.HOLD)
+local req, body, result = written(MODE.HOLD)
 T.eq("a PUT", req.method, "PUT")
 T.eq("Hold goes to Mode/Hold", req.url, "https://api.nam.mynuheat.com/api/v2/Mode/Hold")
 T.eq("as JSON", req.headers["Content-Type"], "application/json")
 T.eq("with the absolute temperature", body, { serialNumber = "1234567", temperature = 2500, temperatureType = 0 })
 T.eq("resolves with the device as written", result.value.SetPointTemp, 2500)
-req, body = written(Client.MODE.HOLD, { HoldUntil = "2026-10-24T05:00:00Z" })
+req, body = written(MODE.HOLD, { HoldUntil = "2026-10-24T05:00:00Z" })
 T.eq("a hold end time goes when set", body.holdUntil, "2026-10-24T05:00:00Z")
-req, body = written(Client.MODE.MANUAL)
+req, body = written(MODE.MANUAL)
 T.eq("Manual goes to Mode/Manual", req.url, "https://api.nam.mynuheat.com/api/v2/Mode/Manual")
 T.eq(
   "with the temperature and no end time",
   body,
   { serialNumber = "1234567", temperature = 2500, temperatureType = 0 }
 )
-req, body = written(Client.MODE.AUTO)
+req, body = written(MODE.AUTO)
 T.eq("Auto goes to Mode/Auto", req.url, "https://api.nam.mynuheat.com/api/v2/Mode/Auto")
 T.eq("with the serial only", body, { serialNumber = "1234567" })
 
