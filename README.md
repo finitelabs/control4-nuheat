@@ -34,6 +34,7 @@ so your Nuheat password is never entered in Control4.
 - [Installer Setup](#installer-setup)
 
   - [Driver Installation](#driver-installation)
+  - [Linking the Homeowner's Nuheat Account](#linking-the-homeowners-nuheat-account)
   - [Driver Setup](#driver-setup)
     - [Driver Properties](#driver-properties)
       - [Cloud Settings](#cloud-settings)
@@ -69,7 +70,9 @@ only place the account is linked and the only cloud connection that is opened.
 
 - Sign-in on Nuheat's own page (OAuth), with the link kept short for typing
 - Automatic discovery of every thermostat on the account
-- One connection per thermostat, each bound to a companion thermostat driver
+- One companion thermostat driver per thermostat, added, bound, and placed in
+  its room by the Add Thermostats action
+- Account Linked and Account Not Linked events for programming
 - State refreshed on a configurable poll interval, and read back after every
   change
 
@@ -127,13 +130,32 @@ is an outline of the basic steps for your convenience.
    [`Log Mode`](#log-mode--off--print--log--print-and-log-) property to `Print`,
    run Link Account again, and check the Lua output window for details.
 
-1. For each thermostat you want to control, use the "Search" tab to add a
-   "Nuheat Thermostat" driver. In the "Connections" tab, select the "Nuheat"
-   driver and bind each discovered thermostat to a "Nuheat Thermostat" driver.
+1. Run the [Add Thermostats](#add-thermostats) action. It adds a "Nuheat
+   Thermostat" driver for each thermostat on the account, binds it, names it
+   after the thermostat, and shows it only in its own room.
+
+You can also add the "Nuheat Thermostat" drivers yourself and bind each one to a
+thermostat connection on the "Nuheat" driver in the "Connections" tab; Add
+Thermostats then connects any unbound ones it finds before adding new drivers.
 
 Each companion driver includes its own documentation accessible from within
 Composer Pro. Refer to the **Nuheat Thermostat** driver documentation for its
 property, connection, and programming reference.
+
+## Linking the Homeowner's Nuheat Account
+
+The Nuheat account is usually the homeowner's, so you don't need their password.
+Run [Link Account](#link-account), copy the
+[`Authentication URL`](#authentication-url-read-only), and send it to the
+homeowner. They open it on any phone or computer within five minutes, sign in to
+Nuheat, and allow access. That is all: the driver stays linked from then on,
+across reboots and updates.
+
+If the link expires first, run Link Account again for a new one. Once the
+thermostats are added, the homeowner can also link the account themselves from
+the Control4 app: open a Nuheat thermostat, go to **Extras**, press **Get
+Link**, and open the link shown. Each thermostat shows "Sign in to Nuheat from
+Extras" whenever the account is not linked.
 
 ## Driver Setup
 
@@ -205,6 +227,20 @@ After the first link, a customer can also link again from the Control4 app, with
 Signs out of Nuheat and forgets the account's tokens. Connection bindings are
 kept, so linking the same account again restores control without re-binding.
 
+#### Add Thermostats
+
+Adds a **Nuheat Thermostat** driver for every thermostat on the account that
+doesn't have one, and binds it. Any Nuheat Thermostat drivers already in the
+project that aren't bound are used first. A new driver goes in the room whose
+name matches the thermostat's Nuheat name (e.g. `Master Bathroom` for
+`Master Bathroom Floor`), or this driver's room when none matches, and is shown
+in that room's Navigators only. Each driver is named after its thermostat.
+
+Run it again after adding a thermostat to the account. A driver whose thermostat
+is no longer on the account is renamed with ` - REMOVED FROM NUHEAT`; copy any
+programming from it and delete it. If the thermostat comes back to the account,
+the next Add Thermostats restores the name.
+
 #### Refresh Thermostats
 
 Re-reads the account and refreshes the discovered thermostats and their
@@ -231,6 +267,14 @@ name. Bind each to a **Nuheat Thermostat** companion driver; that companion
 exposes the standard Control4 thermostat proxy for programming (setpoint, mode,
 hold, temperature). This account driver has no directly programmable variables
 of its own. All thermostat control and feedback is on the companion.
+
+### Events
+
+- **Account Linked**: when the driver is linked to a Nuheat account, or links
+  again after losing its sign-in. Not fired when a reboot restores the sign-in.
+- **Account Not Linked**: when the driver loses its Nuheat sign-in (for example,
+  access was revoked in the Nuheat app) or is unlinked. Use it to send the
+  integrator a notification.
 
 # <span style="color:#FF0547">Support</span>
 

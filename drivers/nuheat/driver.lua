@@ -142,6 +142,14 @@ end
 
 -- ─── Thermostat discovery ──────────────────────────────────────────────────
 
+--- A thermostat's display name: its Nuheat name, or its serial number.
+--- @param device table
+--- @param serial string
+--- @return string
+local function thermostatName(device, serial)
+  return not IsEmpty(device.Room) and device.Room or ("Nuheat " .. serial)
+end
+
 --- Store a device, ensure its provider binding exists, register a bind handler
 --- that hands the device off when a companion connects, and push the current
 --- state to any companion already bound.
@@ -157,7 +165,7 @@ local function ingestThermostat(device)
     serial,
     "PROXY",
     true,
-    not IsEmpty(device.Room) and device.Room or ("Nuheat " .. serial),
+    thermostatName(device, serial),
     constants.THERMOSTAT_CLASS
   )
   if binding then
@@ -175,6 +183,185 @@ end
 
 local function connectedStatus(count)
   return string.format("Connected (%d thermostat%s)", count, count == 1 and "" or "s")
+end
+
+--- Set once a refresh has listed the account's thermostats, so Add Thermostats
+--- can tell a thermostat that left the account from one not read yet.
+local gListed = false
+
+-- ─── Companion drivers ─────────────────────────────────────────────────────
+
+local COMPANION_DRIVER = "nuheat_thermostat.c4z"
+--- The companion's consumer binding for this driver's thermostat bindings.
+local COMPANION_BINDING = 5002
+--- Pause between companions, so each initializes before the next is added.
+local ADD_SPACING_S = 5
+local REMOVED_SUFFIX = " - REMOVED FROM NUHEAT"
+
+local gAdding = false
+
+--- @param bindingId integer
+--- @return boolean
+local function hasCompanion(bindingId)
+  return next(C4:GetBoundConsumerDevices(C4:GetDeviceID(), bindingId) or {}) ~= nil
+end
+
+--- Companion drivers in the project that no account is connected to.
+--- @return integer[]
+local function spareCompanions()
+  local ids = {}
+  for key in pairs(C4:GetDevicesByC4iName(COMPANION_DRIVER) or {}) do
+    local id = tonumber(key)
+    if id and C4:GetBoundProviderDevice(id, COMPANION_BINDING) == 0 then
+      ids[#ids + 1] = id
+    end
+  end
+  table.sort(ids)
+  return ids
+end
+
+--- The project's rooms as { [roomId] = name }.
+--- @return table<integer, string>
+local function projectRooms()
+  local rooms = {}
+  for id, name in pairs(C4:GetDevicesByC4iName("roomdevice.c4i") or {}) do
+    if tonumber(id) then
+      rooms[tonumber(id)] = tostring(name)
+    end
+  end
+  return rooms
+end
+
+--- The room a thermostat's companion goes in: the room whose name the Nuheat
+--- name matches or contains (the longest such name), else this driver's room.
+--- @param thermostatName string
+--- @param rooms table<integer, string>
+--- @return integer
+local function roomFor(thermostatName, rooms)
+  local wanted = string.lower(thermostatName or "")
+  local bestId, bestLength = nil, 0
+  for id, name in pairs(rooms) do
+    local lowered = string.lower(name)
+    if lowered ~= "" and #lowered > bestLength and wanted:find(lowered, 1, true) then
+      bestId, bestLength = id, #lowered
+    end
+  end
+  return bestId or C4:RoomGetId()
+end
+
+--- Show a proxy in the Navigators of one room and hide it in every other.
+--- @param proxyId integer
+--- @param roomId integer
+--- @param rooms table<integer, string>
+local function showOnlyInRoom(proxyId, roomId, rooms)
+  for id in pairs(rooms) do
+    C4:SendToDevice(id, "SET_DEVICE_HIDDEN_STATE", {
+      PROXY_GROUP = "ALL",
+      DEVICE_ID = proxyId,
+      IS_HIDDEN = id ~= roomId,
+    })
+  end
+end
+
+--- @param deviceId integer
+--- @return integer|nil
+local function proxyOf(deviceId)
+  return tonumber((tostring(C4:GetProxyDevicesById(deviceId) or "")):match("^(%d+)"))
+end
+
+--- Rename the companions of thermostats that are no longer on the account, so
+--- the integrator can find and remove them, and restore the name of one whose
+--- thermostat is back.
+local function markRemovedCompanions()
+  for serial, binding in pairs(bindings:getDynamicBindings(NS)) do
+    local device = gState.devices[serial]
+    for deviceId in pairs(C4:GetBoundConsumerDevices(C4:GetDeviceID(), binding.bindingId) or {}) do
+      local proxyId = proxyOf(tonumber(deviceId))
+      local name = proxyId and C4:GetDeviceDisplayName(proxyId)
+      local marked = name and name:find(REMOVED_SUFFIX, 1, true) ~= nil
+      if name and not device and not marked then
+        log:info("Thermostat %s left the account; renaming %s", serial, name)
+        C4:RenameDevice(proxyId, name .. REMOVED_SUFFIX)
+      elseif name and device and marked then
+        log:info("Thermostat %s is back on the account; renaming %s", serial, name)
+        C4:RenameDevice(proxyId, (name:gsub(REMOVED_SUFFIX:gsub("%p", "%%%0"), "")))
+      end
+    end
+  end
+end
+
+--- Give every thermostat on the account a companion driver: an unconnected one
+--- already in the project when there is one, else a new one in the matching
+--- room, shown only in that room. One at a time, ADD_SPACING_S apart.
+local function addThermostats()
+  if gAdding then
+    log:info("Add Thermostats is already running")
+    return
+  end
+  if not client:isAuthenticated() or not gListed then
+    C4:UpdateProperty("Driver Status", "Link the account before adding thermostats")
+    return
+  end
+  markRemovedCompanions()
+  local rooms = projectRooms()
+  local pending = {}
+  for serial, device in pairs(gState.devices) do
+    local binding = bindings:getDynamicBinding(NS, serial)
+    if binding and not hasCompanion(binding.bindingId) then
+      local name = thermostatName(device, serial)
+      pending[#pending + 1] = { bindingId = binding.bindingId, name = name, roomId = roomFor(name, rooms) }
+    end
+  end
+  table.sort(pending, function(a, b)
+    return a.name < b.name
+  end)
+  local total = #pending
+  if total == 0 then
+    C4:UpdateProperty("Driver Status", "Every thermostat already has a driver")
+    return
+  end
+  local spares = spareCompanions()
+  gAdding = true
+
+  local function nextThermostat()
+    local item = table.remove(pending, 1)
+    if not item then
+      gAdding = false
+      log:info("Add Thermostats finished; refreshing Navigators")
+      RefreshNavs()
+      C4:UpdateProperty("Driver Status", connectedStatus(TableLength(gState.devices)))
+      return
+    end
+    C4:UpdateProperty("Driver Status", string.format("Adding thermostat %d of %d...", total - #pending, total))
+    local function connect(deviceId, isNew)
+      Bind(C4:GetDeviceID(), item.bindingId, deviceId, COMPANION_BINDING, constants.THERMOSTAT_CLASS)
+      local proxyId = proxyOf(deviceId)
+      if proxyId then
+        C4:RenameDevice(proxyId, item.name)
+        if isNew then
+          showOnlyInRoom(proxyId, item.roomId, rooms)
+        end
+      end
+      SetTimer("NuheatAddThermostats", ADD_SPACING_S * ONE_SECOND, nextThermostat)
+    end
+    local spare = table.remove(spares, 1)
+    if spare then
+      log:info("Connecting %s to the existing companion %s", item.name, spare)
+      connect(spare, false)
+      return
+    end
+    log:info("Adding a companion for %s in room %s", item.name, item.roomId)
+    C4:AddDevice(COMPANION_DRIVER, item.roomId, item.name, function(deviceId)
+      deviceId = tonumber(deviceId)
+      if not deviceId or deviceId == 0 then
+        log:error("Control4 could not add %s for %s", COMPANION_DRIVER, item.name)
+        SetTimer("NuheatAddThermostats", ONE_SECOND, nextThermostat)
+        return
+      end
+      connect(deviceId, true)
+    end)
+  end
+  nextThermostat()
 end
 
 --- Read every thermostat on the account. Responses are accepted in issue order
@@ -195,6 +382,7 @@ local function refreshThermostats()
       return
     end
     gRefreshAccepted = refreshId
+    gListed = true
     local listed = {}
     for _, device in ipairs(devices) do
       listed[tostring(device.SerialNumber)] = true
@@ -235,11 +423,27 @@ end
 
 -- ─── Sign-in ───────────────────────────────────────────────────────────────
 
+--- driver.xml event ids.
+local EVENT = { ACCOUNT_LINKED = 1, ACCOUNT_NOT_LINKED = 2 }
+
+--- Whether the account was linked at the last change: nil until the first
+--- change after start-up, false when start-up found no stored sign-in.
+--- @type boolean|nil
+local gWasLinked = nil
+
 --- @param authenticated boolean
 --- @param reason string|nil
 local function onAuthChanged(authenticated, reason)
   gAuth = { linked = authenticated, status = authenticated and "Linked" or (reason or "Not linked"), link = "" }
   pushAuth()
+  -- A stored sign-in restored at start-up is not news; a first link, a recovery
+  -- and any loss are.
+  if authenticated and gWasLinked == false then
+    C4:FireEventByID(EVENT.ACCOUNT_LINKED)
+  elseif not authenticated and gWasLinked ~= false then
+    C4:FireEventByID(EVENT.ACCOUNT_NOT_LINKED)
+  end
+  gWasLinked = authenticated
   if authenticated then
     C4:UpdateProperty("Account Status", "Linked")
     C4:UpdateProperty("Authentication URL", "")
@@ -254,6 +458,7 @@ local function onAuthChanged(authenticated, reason)
     goOffline(serial)
   end
   gState.devices = {}
+  gListed = false
 end
 
 --- @param link string
@@ -347,6 +552,7 @@ function OnDriverLateInit()
     C4:UpdateProperty("Account Status", "Signing in...")
     C4:UpdateProperty("Driver Status", "Connecting")
   else
+    gWasLinked = false
     C4:UpdateProperty("Account Status", "Not linked: run the Link Account action")
     C4:UpdateProperty("Driver Status", "Not connected")
   end
@@ -356,6 +562,7 @@ function OnDriverDestroyed()
   stopPolling()
   CancelTimer("UpdateCheck")
   CancelTimer("NuheatReadback")
+  CancelTimer("NuheatAddThermostats")
 end
 
 -- ─── Property handlers (OPC dispatch) ──────────────────────────────────────
@@ -503,6 +710,11 @@ end
 function EC.Refresh_Thermostats()
   log:trace("EC.Refresh_Thermostats()")
   refreshThermostats()
+end
+
+function EC.Add_Thermostats()
+  log:trace("EC.Add_Thermostats()")
+  addThermostats()
 end
 
 function EC.Reset_Driver(tParams)

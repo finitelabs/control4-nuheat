@@ -17,6 +17,18 @@
   <composer_categories>
     <category>Comfort</category>
   </composer_categories>
+  <events>
+    <event>
+      <id>1</id>
+      <name>Account Linked</name>
+      <description>When NAME is linked to a Nuheat account, or links again after losing its sign-in</description>
+    </event>
+    <event>
+      <id>2</id>
+      <name>Account Not Linked</name>
+      <description>When NAME loses its Nuheat sign-in or is unlinked</description>
+    </event>
+  </events>
   <config>
     <script file="driver.lua" jit="1"/>
     <documentation file="www/documentation/index.html"/>
@@ -139,6 +151,10 @@
       <action>
         <name>Unlink Account</name>
         <command>Unlink_Account</command>
+      </action>
+      <action>
+        <name>Add Thermostats</name>
+        <command>Add_Thermostats</command>
       </action>
       <action>
         <name>Refresh Thermostats</name>

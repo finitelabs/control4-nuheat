@@ -86,10 +86,13 @@ capabilities are not advertised. The heat setpoint ranges from 5 to 40 °C (41 t
 # <span style="color:#FF0547">Installer Setup</span>
 
 Refer to the main **Nuheat** account driver documentation for linking the
-account. Once the account driver is linked and reporting thermostats, bind this
-driver to one of them.
+account. Once the account driver is linked, its **Add Thermostats** action adds
+and binds one of these drivers per thermostat, so you usually don't add this
+driver yourself.
 
 ## Adding the Driver
+
+To add one by hand instead:
 
 1. In Composer Pro, add the **Nuheat Thermostat** driver to your project.
 1. In the "Connections" tab, bind this driver's **Nuheat Thermostat** connection
@@ -176,11 +179,12 @@ showing whether the account is linked. If it is not (after **Unlink Account**,
 or if Nuheat stops accepting the sign-in), the section shows a **Get Link**
 button: press it, then open the link it shows in a browser within five minutes
 and sign in to Nuheat. The account driver picks up the sign-in and every
-thermostat reconnects.
+thermostat reconnects. While the account is not linked, the thermostat screen
+shows "Sign in to Nuheat from Extras".
 
-The first link is done in Composer with the account driver's **Link Account**
-action, since this driver can only be bound once the account driver has found
-the thermostats.
+The first link is started from the account driver's **Link Account** action,
+since this driver is only added once the account driver has found the
+thermostats. The integrator can send that link to the homeowner to sign in.
 
 <!-- #ifdef DRIVERCENTRAL -->
 

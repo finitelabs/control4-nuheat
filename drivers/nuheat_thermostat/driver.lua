@@ -312,6 +312,12 @@ end
 
 -- ─── Account linking in the app (thermostatV2 extras) ──────────────────────
 
+--- The thermostat screen's banner while the account is not linked.
+local NOT_LINKED_MESSAGE = "Sign in to Nuheat from Extras"
+--- The banner last sent, nil before the first.
+--- @type string|nil
+local gMessage = nil
+
 --- The objects in the Nuheat Account extras section, in display order, with the
 --- attributes only the setup carries.
 local EXTRAS_OBJECTS = {
@@ -378,6 +384,11 @@ function RFP.authStatus(idBinding, _strCommand, tParams)
   SendToProxy(PROXY_BINDING, "EXTRAS_STATE_CHANGED", {
     XML = "<extras_state><extra>" .. extrasObjectsXml(auth, false) .. "</extra></extras_state>",
   }, "NOTIFY")
+  local message = auth.linked and "" or NOT_LINKED_MESSAGE
+  if message ~= gMessage then
+    gMessage = message
+    SendToProxy(PROXY_BINDING, "MESSAGE_CHANGED", { MESSAGE = message }, "NOTIFY")
+  end
 end
 
 --- Get Link pressed in the app: the account owns the sign-in.
