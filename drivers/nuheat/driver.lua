@@ -142,6 +142,14 @@ end
 
 -- ─── Thermostat discovery ──────────────────────────────────────────────────
 
+--- A thermostat's display name: its Nuheat name, or its serial number.
+--- @param device table
+--- @param serial string
+--- @return string
+local function thermostatName(device, serial)
+  return not IsEmpty(device.Room) and device.Room or ("Nuheat " .. serial)
+end
+
 --- Store a device, ensure its provider binding exists, register a bind handler
 --- that hands the device off when a companion connects, and push the current
 --- state to any companion already bound.
@@ -157,7 +165,7 @@ local function ingestThermostat(device)
     serial,
     "PROXY",
     true,
-    not IsEmpty(device.Room) and device.Room or ("Nuheat " .. serial),
+    thermostatName(device, serial),
     constants.THERMOSTAT_CLASS
   )
   if binding then
@@ -262,17 +270,21 @@ local function proxyOf(deviceId)
 end
 
 --- Rename the companions of thermostats that are no longer on the account, so
---- the integrator can find and remove them.
+--- the integrator can find and remove them, and restore the name of one whose
+--- thermostat is back.
 local function markRemovedCompanions()
   for serial, binding in pairs(bindings:getDynamicBindings(NS)) do
-    if not gState.devices[serial] then
-      for deviceId in pairs(C4:GetBoundConsumerDevices(C4:GetDeviceID(), binding.bindingId) or {}) do
-        local proxyId = proxyOf(tonumber(deviceId))
-        local name = proxyId and C4:GetDeviceDisplayName(proxyId)
-        if name and not name:find(REMOVED_SUFFIX, 1, true) then
-          log:info("Thermostat %s left the account; renaming %s", serial, name)
-          C4:RenameDevice(proxyId, name .. REMOVED_SUFFIX)
-        end
+    local device = gState.devices[serial]
+    for deviceId in pairs(C4:GetBoundConsumerDevices(C4:GetDeviceID(), binding.bindingId) or {}) do
+      local proxyId = proxyOf(tonumber(deviceId))
+      local name = proxyId and C4:GetDeviceDisplayName(proxyId)
+      local marked = name and name:find(REMOVED_SUFFIX, 1, true) ~= nil
+      if name and not device and not marked then
+        log:info("Thermostat %s left the account; renaming %s", serial, name)
+        C4:RenameDevice(proxyId, name .. REMOVED_SUFFIX)
+      elseif name and device and marked then
+        log:info("Thermostat %s is back on the account; renaming %s", serial, name)
+        C4:RenameDevice(proxyId, (name:gsub(REMOVED_SUFFIX:gsub("%p", "%%%0"), "")))
       end
     end
   end
@@ -296,7 +308,7 @@ local function addThermostats()
   for serial, device in pairs(gState.devices) do
     local binding = bindings:getDynamicBinding(NS, serial)
     if binding and not hasCompanion(binding.bindingId) then
-      local name = not IsEmpty(device.Room) and device.Room or ("Nuheat " .. serial)
+      local name = thermostatName(device, serial)
       pending[#pending + 1] = { bindingId = binding.bindingId, name = name, roomId = roomFor(name, rooms) }
     end
   end

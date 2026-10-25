@@ -332,7 +332,8 @@ in that room's Navigators only. Each driver is named after its thermostat.
 
 Run it again after adding a thermostat to the account. A driver whose thermostat
 is no longer on the account is renamed with ` - REMOVED FROM NUHEAT`; copy any
-programming from it and delete it.
+programming from it and delete it. If the thermostat comes back to the account,
+the next Add Thermostats restores the name.
 
 #### Refresh Thermostats
 

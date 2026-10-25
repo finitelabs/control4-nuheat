@@ -228,6 +228,14 @@ T.eq("its companion is renamed", names[kitchenProxy], "Kitchen - REMOVED FROM NU
 EC.Add_Thermostats()
 T.eq("only once", names[kitchenProxy], "Kitchen - REMOVED FROM NUHEAT")
 
+T.section("a thermostat that comes back gets its name back")
+table.insert(thermostats, 2, thermostat("222", "Kitchen"))
+timers.NuheatPoll.callback()
+EC.Add_Thermostats()
+runAddQueue()
+T.eq("the suffix is removed", names[kitchenProxy], "Kitchen")
+T.eq("and no new companion is added", #added, 3)
+
 T.section("losing the sign-in fires Account Not Linked once")
 events = {}
 EC.Unlink_Account()
