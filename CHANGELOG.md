@@ -35,9 +35,6 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - **Add Thermostats** action: adds, connects and names a companion per
   thermostat and shows each only in its own room.
 - **Account Linked** and **Account Not Linked** events for programming.
-
-<!-- #ifndef DRIVERCENTRAL -->
-
+  <!-- #ifndef DRIVERCENTRAL -->
 - Automatic updates from GitHub releases.
-
-<!-- #endif -->
+  <!-- #endif -->
