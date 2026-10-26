@@ -168,8 +168,7 @@ is an outline of the basic steps for your convenience.
 
 1. Run the [Link Account](#link-account) action. The
    [`Authentication URL`](#authentication-url-read-only) property shows a link:
-   open it in a browser within five minutes, sign in to Nuheat, and allow
-   access.
+   open it in a browser within ten minutes, sign in to Nuheat, and allow access.
 
 1. After a few moments the [`Account Status`](#account-status-read-only) shows
    `Linked` and the [`Driver Status`](#driver-status-read-only) shows
@@ -195,8 +194,7 @@ is an outline of the basic steps for your convenience.
 
 1. Run the [Link Account](#link-account) action. The
    [`Authentication URL`](#authentication-url-read-only) property shows a link:
-   open it in a browser within five minutes, sign in to Nuheat, and allow
-   access.
+   open it in a browser within ten minutes, sign in to Nuheat, and allow access.
 
 1. After a few moments the [`Account Status`](#account-status-read-only) shows
    `Linked` and the [`Driver Status`](#driver-status-read-only) shows
@@ -223,7 +221,7 @@ property, connection, and programming reference.
 The Nuheat account is usually the homeowner's, so you don't need their password.
 Run [Link Account](#link-account), copy the
 [`Authentication URL`](#authentication-url-read-only), and send it to the
-homeowner. They open it on any phone or computer within five minutes, sign in to
+homeowner. They open it on any phone or computer within ten minutes, sign in to
 Nuheat, and allow access. That is all: the driver stays linked from then on,
 across reboots and updates.
 
@@ -311,10 +309,10 @@ the current version.
 #### Link Account
 
 Starts a sign-in: the [`Authentication URL`](#authentication-url-read-only)
-property shows a link to open, valid for five minutes. Once you sign in and
-allow access, the driver stays linked, across reboots, until you unlink it.
-After the first link, a customer can also link again from the Control4 app, with
-**Get Link** in any Nuheat thermostat's extras.
+property shows a link to open, valid for ten minutes. Once you sign in and allow
+access, the driver stays linked, across reboots, until you unlink it. After the
+first link, a customer can also link again from the Control4 app, with **Get
+Link** in any Nuheat thermostat's extras.
 
 #### Unlink Account
 

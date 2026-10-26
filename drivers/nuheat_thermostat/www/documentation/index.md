@@ -177,7 +177,7 @@ schedule event.
 The thermostat's extras in the Control4 app have a **Nuheat Account** section
 showing whether the account is linked. If it is not (after **Unlink Account**,
 or if Nuheat stops accepting the sign-in), the section shows a **Get Link**
-button: press it, then open the link it shows in a browser within five minutes
+button: press it, then open the link it shows in a browser within ten minutes
 and sign in to Nuheat. The account driver picks up the sign-in and every
 thermostat reconnects. While the account is not linked, the thermostat screen
 shows "Sign in to Nuheat from Extras".

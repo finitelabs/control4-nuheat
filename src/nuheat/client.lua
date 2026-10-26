@@ -78,11 +78,12 @@ function Client:start()
     REDIRECT_URI = inProduction() and constants.REDIRECT_URI_PROD or constants.REDIRECT_URI_DEV,
     AUTH_ENDPOINT_URI = constants.AUTH_ENDPOINT,
     TOKEN_ENDPOINT_URI = constants.TOKEN_ENDPOINT,
-    -- The redirect service's maximum. The short link still expires at the link
-    -- service's default 5 minutes until make_short_link passes a duration.
+    -- The redirect service's maximum; the short link is given the same lifetime.
     REDIRECT_DURATION = 10 * 60,
     API_CLIENT_ID = secret(constants.CLIENT_ID),
     API_SECRET = secret(constants.CLIENT_SECRET),
+    -- Chemelex enabled PKCE on this client; the secret is kept as well.
+    USE_PKCE = true,
     SCOPES = constants.SCOPES,
   })
   grant.notifyHandler.AccessTokenGranted = function()
