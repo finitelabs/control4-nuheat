@@ -61,7 +61,7 @@ local state = last("EXTRAS_STATE_CHANGED")
 T.eq("goes to the thermostat proxy", state and state.idBinding, PROXY_BINDING)
 local xml = state and state.params.XML or ""
 T.contains("shows the status", object(xml, "NuheatAccountStatus"), 'value="Open the link to sign in to Nuheat"')
-T.contains("shows Get Link", object(xml, "LinkNuheatAccount"), 'hidden="False"')
+T.contains("hides Get Link while the link waits", object(xml, "LinkNuheatAccount"), 'hidden="True"')
 T.contains("shows the link", object(xml, "NuheatAuthLink"), 'hidden="False"')
 T.contains("with & escaped", object(xml, "NuheatAuthLink"), "client_id=x&amp;state=y")
 T.excludes("and no bare &", xml, "x&state")
