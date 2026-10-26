@@ -243,11 +243,19 @@ T.eq("one event", events, { "Account Not Linked" })
 EC.Unlink_Account()
 T.eq("not again while unlinked", events, { "Account Not Linked" })
 
-T.section("a sign-in restored at start-up fires nothing")
+T.section("a restart with no stored sign-in")
 events = {}
+local authSends = {}
+C4.SendToProxy = function(_, idBinding, command, tParams)
+  if command == "authStatus" then
+    authSends[#authSends + 1] = { idBinding = idBinding, linked = tParams.LINKED }
+  end
+end
 dofile(DRIVER)
 OnDriverInit()
 OnDriverLateInit()
-T.eq("no stored sign-in, no event", events, {})
+T.eq("fires no event", events, {})
+T.eq("tells each restored thermostat binding", #authSends, 4)
+T.eq("that the account is not linked", authSends[1] and authSends[1].linked, "false")
 
 T.finish()
