@@ -338,7 +338,8 @@ local function extrasState(auth)
   local link = auth.link or ""
   return {
     NuheatAccountStatus = { value = auth.status or "", hidden = false },
-    -- Hidden while a link waits; it returns when the link expires or fails.
+    -- Hidden while a link waits. The link and the state behind it expire together,
+    -- and the account then clears the link, so the button comes back with it.
     LinkNuheatAccount = { hidden = linked or link ~= "" },
     NuheatAuthLink = { value = link, hidden = linked or link == "" },
   }
