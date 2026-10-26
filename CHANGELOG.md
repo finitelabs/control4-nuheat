@@ -6,6 +6,21 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 ## v[Version] - YYYY-MM-DD
 
 ### Added
+- Added
+
+### Fixed
+- Fixed
+
+### Changed
+- Changed
+
+### Removed
+- Removed
+-->
+
+## Unreleased
+
+### Added
 
 - **Nuheat** account driver. Links to a Nuheat account through the official
   Nuheat OpenAPI, with sign-in on Nuheat's own page so no password is entered in
