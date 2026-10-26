@@ -5,10 +5,10 @@ local M = {}
 --- serves both Signature and Conductor; v1 serves Signature only.
 M.API_BASE = "https://api.nam.mynuheat.com"
 --- Control4's redirect service accepts only the authorize URL registered with
---- the C4 OAuth API key, so it must stay this exact string (identity.nam serves
---- the same issuer but is refused with a 403).
-M.AUTH_ENDPOINT = "https://identity.mynuheat.com/connect/authorize"
-M.TOKEN_ENDPOINT = "https://identity.mynuheat.com/connect/token"
+--- the C4 OAuth API key and refuses any other with a 403, so this must match the
+--- registration exactly (identity.mynuheat.com serves the same issuer).
+M.AUTH_ENDPOINT = "https://identity.nam.mynuheat.com/connect/authorize"
+M.TOKEN_ENDPOINT = "https://identity.nam.mynuheat.com/connect/token"
 M.SCOPES = { "openid", "openapi", "offline_access" }
 
 --- Build secrets, substituted by tools/preprocess.py from .env / CI secrets (see

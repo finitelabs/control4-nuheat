@@ -546,15 +546,21 @@ function OnDriverLateInit()
   if not client:isConfigured() then
     C4:UpdateProperty("Account Status", "This build has no Nuheat API credentials")
     C4:UpdateProperty("Driver Status", "Not configured")
+    gAuth.status = "This build has no Nuheat API credentials"
+    pushAuth()
     return
   end
   if client:start() then
+    -- The refresh's outcome tells the companions, a moment from now.
     C4:UpdateProperty("Account Status", "Signing in...")
     C4:UpdateProperty("Driver Status", "Connecting")
   else
     gWasLinked = false
     C4:UpdateProperty("Account Status", "Not linked: run the Link Account action")
     C4:UpdateProperty("Driver Status", "Not connected")
+    -- Companions keep the last state they were sent, which an update or a
+    -- removed sign-in can leave saying Linked.
+    pushAuth()
   end
 end
 
