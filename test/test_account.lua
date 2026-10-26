@@ -131,10 +131,26 @@ T.contains(
   constants.AUTH_ENDPOINT
 )
 T.contains("for this client", props["Authentication URL"], "client_id=test-client")
+T.contains("with a PKCE challenge", props["Authentication URL"], "code_challenge_method=S256")
+local challenge = props["Authentication URL"]:match("code_challenge=([%w%-_]+)")
+T.truthy("base64url, unpadded", challenge and #challenge == 43)
 
 timers["OAuth_Nuheat_Timer_CheckState"].callback()
 local token = lastRequest("POST", "connect/token")
 T.contains("the code is exchanged", token and token.data, "grant_type=authorization_code")
+local verifier = token and token.data:match("code_verifier=([%w%-%._~]+)")
+T.truthy("with the PKCE verifier", verifier)
+T.eq(
+  "whose SHA-256 is the challenge sent",
+  verifier
+    and (
+      C4:Base64Encode(C4:Hash("SHA256", verifier, { return_encoding = "NONE" }))
+        :gsub("%+", "-")
+        :gsub("/", "_")
+        :gsub("=", "")
+    ),
+  challenge
+)
 T.eq("Account Status", props["Account Status"], "Linked")
 T.eq("the link is cleared", props["Authentication URL"], "")
 T.truthy("polling starts", timers.NuheatPoll and timers.NuheatPoll.repeating)

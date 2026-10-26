@@ -83,6 +83,8 @@ function Client:start()
     REDIRECT_DURATION = 10 * 60,
     API_CLIENT_ID = secret(constants.CLIENT_ID),
     API_SECRET = secret(constants.CLIENT_SECRET),
+    -- Chemelex enabled PKCE on this client; the secret is kept as well.
+    USE_PKCE = true,
     SCOPES = constants.SCOPES,
   })
   grant.notifyHandler.AccessTokenGranted = function()
