@@ -22,7 +22,7 @@ ______________________________________________________________________
 <!-- #ifndef DRIVERCENTRAL -->
 
 > DISCLAIMER: This software is neither affiliated with nor endorsed by either
-> Control4 or Nuheat-Systems.
+> Control4 or Nuheat (Chemelex).
 
 <!-- #endif -->
 
@@ -129,7 +129,7 @@ Displays the current version of the driver.
 
 #### Serial ID (read-only)
 
-The serial number of the Nuheat thermostat this driver is bound to.
+Displays the serial number of the Nuheat thermostat this driver is bound to.
 
 #### Log Level \[ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug | 5 - Trace | 6 - Ultra \]
 

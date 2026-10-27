@@ -68,8 +68,10 @@ CancelTimer = function(name)
 end
 
 local props = {}
+-- As on a controller, an update is also seen in Properties.
 C4.UpdateProperty = function(_, name, value)
   props[name] = value
+  Properties[name] = value
 end
 C4.SendToProxy = function() end
 
@@ -158,6 +160,7 @@ C4.GetVersionInfo = function()
   return { version = "4.3.0" }
 end
 Properties["Poll Interval"] = "60 seconds"
+Properties["Authentication URL"] = ""
 Properties["Log Level"] = "3 - Info"
 Properties["Log Mode"] = "Off"
 package.preload["cloud-client-byte"] = function()

@@ -69,8 +69,10 @@ CancelTimer = function(name)
 end
 
 local props = {}
+-- As on a controller, an update is also seen in Properties.
 C4.UpdateProperty = function(_, name, value)
   props[name] = value
+  Properties[name] = value
 end
 local sends = {}
 C4.SendToProxy = function(_, idBinding, command, tParams)
@@ -102,6 +104,7 @@ C4.GetVersionInfo = function()
 end
 
 Properties["Poll Interval"] = "60 seconds"
+Properties["Authentication URL"] = ""
 Properties["Log Level"] = "3 - Info"
 Properties["Log Mode"] = "Off"
 
@@ -213,6 +216,57 @@ local polled = lastSend("authStatus")
 T.eq("to the thermostat's binding", polled and polled.idBinding, bindingId)
 T.eq("linked", polled and polled.params.LINKED, "true")
 
+T.section("a poll is skipped while the last one is still waiting")
+local scripted = urlDo
+local held = {}
+urlDo = function(method, url, data, headers, callback, context)
+  table.insert(requests, { method = method, url = url, data = data, headers = headers })
+  table.insert(held, function()
+    callback(nil, 200, {}, thermostats, context, url)
+  end)
+end
+local function releaseHeld()
+  local pending = held
+  held = {}
+  for _, release in ipairs(pending) do
+    release()
+  end
+end
+os.time = function()
+  return realTime() + 3600
+end
+requests = {}
+timers.NuheatPoll.callback()
+T.eq("the first tick reads", #requests, 1)
+timers.NuheatPoll.callback()
+T.eq("the next tick sends nothing while it waits", #requests, 1)
+EC.Refresh_Thermostats()
+T.eq("Refresh Thermostats is not held back", #requests, 2)
+releaseHeld()
+timers.NuheatPoll.callback()
+T.eq("once answered, polling resumes", #requests, 3)
+releaseHeld()
+urlDo = scripted
+
+T.section("a failed poll says why in Driver Status")
+apiStatus = 500
+timers.NuheatPoll.callback()
+T.contains("even with thermostats known", props["Driver Status"], "Error retrieving thermostats")
+apiStatus = 200
+timers.NuheatPoll.callback()
+T.eq("and the next good poll clears it", props["Driver Status"], "Connected (1 thermostat)")
+
+T.section("Refresh Thermostats can be programmed")
+requests = {}
+ExecuteCommand("Refresh Thermostats", {})
+T.truthy("the command reads the thermostats", lastRequest("GET", "/api/v2/Thermostat$"))
+os.time = realTime
+
+T.section("the Account Linked condition tests the link")
+T.truthy("Linked while linked", TC.ACCOUNT_LINKED("ACCOUNT_LINKED", { VALUE = "Linked", LOGIC = "EQUAL" }))
+T.falsy("not Not Linked", TC.ACCOUNT_LINKED("ACCOUNT_LINKED", { VALUE = "Not Linked", LOGIC = "EQUAL" }))
+T.truthy("and NOT_EQUAL inverts it", TC.ACCOUNT_LINKED("ACCOUNT_LINKED", { VALUE = "Not Linked", LOGIC = "NOT_EQUAL" }))
+
 T.section("a new link that expires while linked keeps the account linked")
 EC.Link_Account()
 T.contains("a link is shown", props["Authentication URL"], constants.AUTH_ENDPOINT)
@@ -235,6 +289,10 @@ T.eq("polling stops", timers.NuheatPoll, nil)
 auth = lastSend("authStatus")
 T.eq("the companion is told", auth and auth.params.LINKED, "false")
 T.eq("why", auth and auth.params.STATUS, "Signed out")
+T.truthy(
+  "the condition reads Not Linked",
+  TC.ACCOUNT_LINKED("ACCOUNT_LINKED", { VALUE = "Not Linked", LOGIC = "EQUAL" })
+)
 
 T.section("Get Link pressed in the app starts a sign-in")
 requests = {}

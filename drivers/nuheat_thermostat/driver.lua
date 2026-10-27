@@ -62,8 +62,10 @@ local RETRY_INTERVAL_S = 12
 
 -- ─── Push state / capabilities to the thermostat proxy ─────────────────────
 
---- Advertise the capabilities of the handed device (heat-only single setpoint,
---- per-device bounds). Only what the device supports is advertised.
+--- Advertise the capabilities of the handed device (heat-only, the heat-setpoint
+--- model, per-device bounds). Only what the device supports is advertised. Sent
+--- on every handoff without a change check: the thermostatV2 proxy takes repeats
+--- without effect, and a reinitialized proxy needs them again.
 local function pushCapabilities()
   if not gState then
     return
@@ -91,7 +93,8 @@ local function pushCapabilities()
 end
 
 --- Push current temperature / setpoint / mode / state to the proxy (values in
---- Celsius; the proxy converts for the user's display scale).
+--- Celsius; the proxy converts for the user's display scale). Sent on every
+--- handoff without a change check, for the same reason as pushCapabilities.
 local function pushState()
   if not gState then
     return
@@ -496,9 +499,9 @@ function OnDriverLateInit()
     return
   end
   for p, _ in pairs(Properties) do
-    local status, err = pcall(OnPropertyChanged, p)
-    if not status and err then
-      log:error("Error in OnPropertyChanged for property '%s': %s", p, err)
+    local ok, err = pcall(OnPropertyChanged, p)
+    if not ok then
+      log:error("OnPropertyChanged('%s') failed: %s", p, tostring(err))
     end
   end
   gInitialized = true

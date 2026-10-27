@@ -40,7 +40,9 @@ so your Nuheat password is never entered in Control4.
       - [Cloud Settings](#cloud-settings)
       - [Account Settings](#account-settings)
       - [Driver Settings](#driver-settings)
+      - [Nuheat Settings](#nuheat-settings)
     - [Driver Actions](#driver-actions)
+  - [Connections](#connections)
   - [Programming Reference](#programming-reference)
 
 - [Support](#support)
@@ -91,9 +93,13 @@ native thermostat with setpoint, mode, and hold control.
 
 # <span style="color:#FF0547">Compatibility</span>
 
-This driver works with Nuheat Signature and Conductor thermostats on a Nuheat
-account. The thermostat's own schedule keeps running; the Nuheat OpenAPI does
-not offer schedule editing, so schedules are managed in the Nuheat app.
+| Model            | Type                           |
+| ---------------- | ------------------------------ |
+| Nuheat Signature | Wi-Fi floor-heating thermostat |
+| Nuheat Conductor | Wi-Fi floor-heating thermostat |
+
+The thermostat's own schedule keeps running; the Nuheat OpenAPI does not offer
+schedule editing, so schedules are managed in the Nuheat app.
 
 If you have a model that works and is not listed, please
 [open an issue](https://github.com/finitelabs/control4-nuheat/issues/new) so it
@@ -180,8 +186,8 @@ why the last sign-in failed (e.g. `The sign-in link expired`).
 
 ##### Authentication URL (read-only)
 
-While Link Account is waiting, the link to open to sign in to Nuheat. Empty
-otherwise.
+Displays the link to open to sign in to Nuheat while Link Account is waiting.
+Empty otherwise.
 
 #### Driver Settings
 
@@ -193,11 +199,6 @@ Displays the current status of the driver (e.g. `Connected (2 thermostats)`).
 
 Displays the current version of the driver.
 
-##### Poll Interval \[ 30 seconds | **_60 seconds_** | 120 seconds | 300 seconds \]
-
-How often the driver reads the account's thermostats. A change made in Control4
-is read back a few seconds after it is sent, whatever this is set to.
-
 ##### Log Level \[ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug | 5 - Trace | 6 - Ultra \]
 
 Sets the logging level. Default is `3 - Info`.
@@ -205,6 +206,14 @@ Sets the logging level. Default is `3 - Info`.
 ##### Log Mode \[ **_Off_** | Print | Log | Print and Log \]
 
 Sets the logging mode. Default is `Off`.
+
+#### Nuheat Settings
+
+##### Poll Interval \[ 30 seconds | **_60 seconds_** | 120 seconds | 300 seconds \]
+
+Sets how often the driver reads the account's thermostats. A change made in
+Control4 is read back a few seconds after it is sent, whatever this is set to.
+Default is `60 seconds`.
 
 ### Driver Actions
 
@@ -258,22 +267,40 @@ removed, or renamed on the account.
 
 - **Are You Sure?** \[ **_No_** | Yes \] - Confirmation to reset the driver.
 
+## Connections
+
+### `{Thermostat Name}` (provider, dynamic)
+
+One per thermostat on the account, created once signed in, with binding class
+`NUHEAT_THERMOSTAT`. Bind each to a **Nuheat Thermostat** driver; **Add
+Thermostats** does this for you.
+
+> **Note:** `{Thermostat Name}` is the thermostat's name in the Nuheat app.
+
 ## Programming Reference
 
-Once signed in, the driver creates one **provider** connection per thermostat on
-the account (binding class `NUHEAT_THERMOSTAT`), named after the thermostat's
-name. Bind each to a **Nuheat Thermostat** companion driver; that companion
-exposes the standard Control4 thermostat proxy for programming (setpoint, mode,
-hold, temperature). This account driver has no directly programmable variables
-of its own. All thermostat control and feedback is on the companion.
+All thermostat control and feedback is on the **Nuheat Thermostat** companions,
+through the standard Control4 thermostat proxy (setpoint, mode, hold,
+temperature). The account driver has no variables of its own.
 
 ### Events
 
-- **Account Linked**: when the driver is linked to a Nuheat account, or links
-  again after losing its sign-in. Not fired when a reboot restores the sign-in.
-- **Account Not Linked**: when the driver loses its Nuheat sign-in (for example,
-  access was revoked in the Nuheat app) or is unlinked. Use it to send the
-  integrator a notification.
+| Event              | Description                                                                                                                                                      |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Account Linked     | Fires when the driver is linked to a Nuheat account, or links again after losing its sign-in. Not fired when a reboot restores the sign-in.                      |
+| Account Not Linked | Fires when the driver loses its Nuheat sign-in (for example, access was revoked in the Nuheat app) or is unlinked. Use it to send the integrator a notification. |
+
+### Conditionals
+
+| Conditional                | Description                                                                                   |
+| -------------------------- | --------------------------------------------------------------------------------------------- |
+| Nuheat account link status | Tests whether the account is `Linked` or `Not Linked`, for example before a scheduled change. |
+
+### Commands
+
+| Command             | Parameters | Description                                          |
+| ------------------- | ---------- | ---------------------------------------------------- |
+| Refresh Thermostats | None       | Re-reads every thermostat on the account right away. |
 
 # <span style="color:#FF0547">Support</span>
 

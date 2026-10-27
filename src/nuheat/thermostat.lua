@@ -25,6 +25,7 @@ M.MIN_C, M.MAX_C = 5, 40
 
 -- ─── Temperature conversion ────────────────────────────────────────────────
 
+--- Converts a Nuheat wire value to Celsius.
 --- @param n number Nuheat wire value (°C × 100)
 --- @return number|nil celsius
 function M.nuheatToC(n)
@@ -35,12 +36,14 @@ function M.nuheatToC(n)
   return v / NUHEAT_SCALE
 end
 
+--- Converts Celsius to a Nuheat wire value.
 --- @param c number Celsius
---- @return number nuheat wire value (°C × 100, rounded)
+--- @return number nuheat Wire value (°C × 100, rounded)
 function M.cToNuheat(c)
   return M.round(tonumber(c) * NUHEAT_SCALE)
 end
 
+--- Converts Celsius to Fahrenheit.
 --- @param c number Celsius
 --- @return number|nil fahrenheit
 function M.cToF(c)
@@ -51,6 +54,7 @@ function M.cToF(c)
   return v * 9 / 5 + 32
 end
 
+--- Converts Fahrenheit to Celsius.
 --- @param f number Fahrenheit
 --- @return number|nil celsius
 function M.fToC(f)
@@ -63,8 +67,8 @@ end
 
 --- Round half-up to `idp` decimal places (default 0).
 --- @param num number
---- @param idp integer|nil
---- @return number
+--- @param idp? integer Decimal places (default 0).
+--- @return number rounded
 function M.round(num, idp)
   local mult = 10 ^ (idp or 0)
   return math.floor(tonumber(num) * mult + 0.5) / mult
@@ -72,7 +76,7 @@ end
 
 --- Snap a temperature to the nearest 0.5° (the setpoint resolution).
 --- @param temp number
---- @return number|nil
+--- @return number|nil normalized
 function M.normalize(temp)
   local t = tofinite(temp)
   if t == nil then
@@ -101,7 +105,7 @@ end
 
 --- Normalize a device object.
 --- @param v table
---- @return NuheatState
+--- @return NuheatState state
 function M.fromDevice(v)
   local mode = tonumber(v.Mode)
   local setpoint = tonumber(v.SetPointTemp)
@@ -122,15 +126,14 @@ end
 -- ─── Capability derivation (for the thermostat proxy) ───────────────────────
 
 --- Derive the Control4 thermostat-proxy capabilities from device state. Nuheat
---- is heat-only with a single setpoint, so CAN_* are false per the C4 rule that
---- they must be false when HAS_SINGLE_SETPOINT is true.
+--- is heat-only, so it uses the heat-setpoint model: HAS_SINGLE_SETPOINT false
+--- and CAN_HEAT true, which the schedule editor and heat setpoint UI need, with
+--- CAN_COOL and CAN_AUTO false.
 --- @param state NuheatState
 --- @return table capabilities
 function M.capabilities(state)
   return {
     allowedHvacModes = "Off,Heat",
-    -- Heat-setpoint model (like the original Nuheat driver): a single Heat
-    -- setpoint, not the single_setpoint model.
     hasSingleSetpoint = false,
     canHeat = true,
     canCool = false,
@@ -142,14 +145,14 @@ end
 
 --- HVAC state string for the C4 proxy: "Heat" while heating, else "Off".
 --- @param state NuheatState
---- @return string
+--- @return string hvacState
 function M.hvacState(state)
   return state.heating and "Heat" or "Off"
 end
 
 --- HVAC mode for the C4 proxy: "Off" when in Away/Off, otherwise "Heat".
 --- @param state NuheatState
---- @return string
+--- @return string hvacMode
 function M.hvacMode(state)
   return state.isOff and "Off" or "Heat"
 end
@@ -160,7 +163,7 @@ M.HOLD_MODES = "Off,Until Next,Permanent"
 
 --- C4 hold mode from device state.
 --- @param state NuheatState
---- @return string
+--- @return string holdMode
 function M.holdMode(state)
   if state.mode == M.MODE.HOLD then
     return "Until Next"
@@ -196,7 +199,7 @@ end
 
 --- The device's current schedule mode.
 --- @param settings table
---- @return integer|nil
+--- @return integer|nil mode
 function M.currentMode(settings)
   return tonumber(settings.Mode)
 end

@@ -29,6 +29,17 @@
       <description>When NAME loses its Nuheat sign-in or is unlinked</description>
     </event>
   </events>
+  <conditionals>
+    <conditional>
+      <id>1</id>
+      <name>ACCOUNT_LINKED</name>
+      <type>BOOL</type>
+      <condition_statement>Nuheat account link status</condition_statement>
+      <description>NAME account is STRING</description>
+      <true_text>Linked</true_text>
+      <false_text>Not Linked</false_text>
+    </conditional>
+  </conditionals>
   <config>
     <script file="driver.lua" jit="1"/>
     <documentation file="www/documentation/index.html"/>
@@ -101,17 +112,6 @@
         <readonly>true</readonly>
       </property>
       <property>
-        <name>Poll Interval</name>
-        <type>LIST</type>
-        <default>60 seconds</default>
-        <items>
-          <item>30 seconds</item>
-          <item>60 seconds</item>
-          <item>120 seconds</item>
-          <item>300 seconds</item>
-        </items>
-      </property>
-      <property>
         <name>Log Level</name>
         <type>LIST</type>
         <default>3 - Info</default>
@@ -134,6 +134,22 @@
           <item>Print</item>
           <item>Log</item>
           <item>Print and Log</item>
+        </items>
+      </property>
+      <property>
+        <name>Nuheat</name>
+        <type>LABEL</type>
+        <default>Nuheat Settings</default>
+      </property>
+      <property>
+        <name>Poll Interval</name>
+        <type>LIST</type>
+        <default>60 seconds</default>
+        <items>
+          <item>30 seconds</item>
+          <item>60 seconds</item>
+          <item>120 seconds</item>
+          <item>300 seconds</item>
         </items>
       </property>
     </properties>
@@ -175,6 +191,12 @@
         </params>
       </action>
     </actions>
+    <commands>
+      <command>
+        <name>Refresh Thermostats</name>
+        <description>Refresh thermostats on NAME</description>
+      </command>
+    </commands>
   </config>
   <connections/>
 </devicedata>
