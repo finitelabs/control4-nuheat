@@ -255,7 +255,7 @@ end
 --- @param rooms table<integer, string>
 local function showOnlyInRoom(proxyId, roomId, rooms)
   for id in pairs(rooms) do
-    C4:SendToDevice(id, "SET_DEVICE_HIDDEN_STATE", {
+    SendToDevice(id, "SET_DEVICE_HIDDEN_STATE", {
       PROXY_GROUP = "ALL",
       DEVICE_ID = proxyId,
       IS_HIDDEN = id ~= roomId,
@@ -366,19 +366,20 @@ end
 
 --- Read every thermostat on the account. Responses are accepted in issue order
 --- only, and a thermostat the account no longer lists is taken offline.
+--- @return Deferred|nil refresh Settles when the read does; nil when none was sent.
 local function refreshThermostats()
   if not client:isAuthenticated() then
-    return
+    return nil
   end
   if os.time() < gRateLimitedUntil then
     log:debug("Skipping a refresh: rate limited for %ds more", gRateLimitedUntil - os.time())
-    return
+    return nil
   end
   gRefreshIssued = gRefreshIssued + 1
   local refreshId = gRefreshIssued
-  client:getThermostats():next(function(devices)
+  return client:getThermostats():next(function(devices)
     if refreshId < gRefreshAccepted then
-      log:trace("discarding stale thermostat refresh %d (accepted %d)", refreshId, gRefreshAccepted)
+      log:trace("Discarding stale thermostat refresh %d (accepted %d)", refreshId, gRefreshAccepted)
       return
     end
     gRefreshAccepted = refreshId
@@ -397,14 +398,39 @@ local function refreshThermostats()
     end
     C4:UpdateProperty("Driver Status", connectedStatus(#devices))
   end, function(err)
+    if refreshId < gRefreshAccepted or not client:isAuthenticated() then
+      return
+    end
     log:warn("Refreshing thermostats failed: %s", err.message)
     if err.retryAfter then
       gRateLimitedUntil = os.time() + err.retryAfter
       C4:UpdateProperty("Driver Status", string.format("Rate limited by Nuheat; retrying in %ds", err.retryAfter))
-    elseif next(gState.devices) == nil then
-      C4:UpdateProperty("Driver Status", "Error retrieving thermostats")
+    else
+      C4:UpdateProperty("Driver Status", "Error retrieving thermostats: " .. tostring(err.message))
     end
   end)
+end
+
+--- Whether a scheduled poll is still waiting on Nuheat.
+local gPollInFlight = false
+
+--- A scheduled poll, skipped while the last one is outstanding so a slow cloud
+--- does not collect requests. Write read-backs and Refresh Thermostats are not
+--- held back by this.
+local function pollTick()
+  if gPollInFlight then
+    log:debug("Skipping a poll: the last one has not finished")
+    return
+  end
+  local refresh = refreshThermostats()
+  if refresh == nil then
+    return
+  end
+  gPollInFlight = true
+  local function done()
+    gPollInFlight = false
+  end
+  refresh:next(done, done)
 end
 
 --- The poll interval in seconds, from the Poll Interval property.
@@ -414,7 +440,7 @@ local function pollIntervalS()
 end
 
 local function startPolling()
-  SetTimer("NuheatPoll", pollIntervalS() * ONE_SECOND, refreshThermostats, true)
+  SetTimer("NuheatPoll", pollIntervalS() * ONE_SECOND, pollTick, true)
 end
 
 local function stopPolling()
@@ -425,6 +451,19 @@ end
 
 --- driver.xml event ids.
 local EVENT = { ACCOUNT_LINKED = 1, ACCOUNT_NOT_LINKED = 2 }
+
+--- Tests whether the account is linked to Nuheat.
+--- @param strConditionName string
+--- @param tParams table VALUE ("Linked" or "Not Linked") and LOGIC.
+--- @return boolean result
+function TC.ACCOUNT_LINKED(strConditionName, tParams)
+  log:trace("TC.ACCOUNT_LINKED(%s, %s)", strConditionName, tParams)
+  local test = Select(tParams, "VALUE") == "Linked"
+  if Select(tParams, "LOGIC") == "NOT_EQUAL" then
+    return test ~= gAuth.linked
+  end
+  return test == gAuth.linked
+end
 
 --- Whether the account was linked at the last change: nil until the first
 --- change after start-up, false when start-up found no stored sign-in.
@@ -446,7 +485,7 @@ local function onAuthChanged(authenticated, reason)
   gWasLinked = authenticated
   if authenticated then
     C4:UpdateProperty("Account Status", "Linked")
-    C4:UpdateProperty("Authentication URL", "")
+    UpdateProperty("Authentication URL", "")
     refreshThermostats()
     startPolling()
     return
@@ -463,7 +502,7 @@ end
 
 --- @param link string
 local function onLink(link)
-  C4:UpdateProperty("Authentication URL", link)
+  UpdateProperty("Authentication URL", link)
   gAuth.link = link or ""
   if not IsEmpty(link) then
     gAuth.status = "Open the link to sign in to Nuheat"
@@ -542,7 +581,7 @@ function OnDriverLateInit()
   --#endif
 
   gInitialized = true
-  C4:UpdateProperty("Authentication URL", "")
+  UpdateProperty("Authentication URL", "")
   if not client:isConfigured() then
     C4:UpdateProperty("Account Status", "This build has no Nuheat API credentials")
     C4:UpdateProperty("Driver Status", "Not configured")
@@ -684,7 +723,7 @@ function RFP.setThermostat(idBinding, _strCommand, tParams)
   end
   settings.SerialNumber = serial
   if gWriteInFlight[serial] then
-    log:trace("write already in flight for %s; coalescing", serial)
+    log:trace("Write already in flight for %s; coalescing", serial)
     gQueuedWrite[serial] = settings
     return
   end

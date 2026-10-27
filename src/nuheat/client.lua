@@ -26,7 +26,7 @@ Client.__index = Client
 --- A build secret, or nil when the build substituted none (a source checkout
 --- still holds the literal __NAME__ placeholder).
 --- @param value string|nil
---- @return string|nil
+--- @return string|nil value
 local function secret(value)
   if type(value) ~= "string" or value == "" or value:match("^__[%w_]+__$") then
     return nil
@@ -34,13 +34,14 @@ local function secret(value)
   return value
 end
 
---- @return boolean
+--- @return boolean production
 local function inProduction()
   return secret(constants.C4_OAUTH_PRODUCTION) == "true"
 end
 
---- @param options table|nil { onLink = fun(link: string), onAuthChanged = fun(authenticated: boolean, reason: string|nil) }
---- @return NuheatClient
+--- Creates a Nuheat client.
+--- @param options? table { onLink = fun(link: string), onAuthChanged = fun(authenticated: boolean, reason: string|nil) }
+--- @return NuheatClient client
 function Client:new(options)
   options = options or {}
   local instance = setmetatable({}, self)
@@ -51,7 +52,7 @@ function Client:new(options)
 end
 
 --- Whether this build carries the client and Control4 keys a sign-in needs.
---- @return boolean
+--- @return boolean configured
 function Client:isConfigured()
   return secret(constants.CLIENT_ID) ~= nil and secret(constants.C4_OAUTH_API_KEY) ~= nil
 end
@@ -137,7 +138,8 @@ function Client:unlink()
   end
 end
 
---- @return boolean
+--- Whether the client holds an access token.
+--- @return boolean authenticated
 function Client:isAuthenticated()
   return self.grant ~= nil and self.grant.ACCESS_TOKEN ~= nil
 end
@@ -146,7 +148,7 @@ end
 
 --- v2 ThermostatModel → the drivers' device object.
 --- @param m table
---- @return table
+--- @return table device
 function Client.toDevice(m)
   m = type(m) == "table" and m or {}
   return {
@@ -193,8 +195,9 @@ end
 --- Retry-After seconds Nuheat sends.
 --- @param method string
 --- @param path string
---- @param body table|nil
---- @return Deferred<any, table>
+--- @private
+--- @param body? table
+--- @return Deferred<any, table> response
 function Client:_request(method, path, body)
   local d = deferred.new()
   if not self:isAuthenticated() then
@@ -227,7 +230,7 @@ function Client:_request(method, path, body)
 end
 
 --- Every thermostat on the account.
---- @return Deferred<table[], table>
+--- @return Deferred<table[], table> devices
 function Client:getThermostats()
   return self:_request("GET", "/api/v2/Thermostat"):next(function(list)
     local devices = {}
@@ -245,7 +248,7 @@ end
 --- the cloud applies a write over seconds, so a read straight after would mostly
 --- return the old state.
 --- @param device table
---- @return Deferred<table, table>
+--- @return Deferred<table, table> device
 function Client:setThermostat(device)
   local path, body = Client.toModeRequest(device)
   return self:_request("PUT", path, body):next(function()
