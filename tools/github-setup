@@ -51,7 +51,7 @@ command -v gh >/dev/null || { echo "error: gh is not installed" >&2; exit 1; }
 
 ORG=finitelabs
 NAME=control4-nuheat
-DESCRIPTION='Control4 drivers for nVent Nuheat integration. Connect your Control4 system to Nuheat Signature and Conductor floor heating thermostats to control setpoints, modes, and schedules.'
+DESCRIPTION='Control4 drivers for Nuheat integration. Connect your Control4 system to Nuheat Signature and Conductor floor heating thermostats to control setpoints, modes, and holds.'
 REPO="$ORG/$NAME"
 
 DRIFT=0
