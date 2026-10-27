@@ -14,7 +14,6 @@ M.SCOPES = { "openid", "openapi", "offline_access" }
 --- Build secrets, substituted by tools/preprocess.py from .env / CI secrets (see
 --- .env.default). Empty in a build that was given none.
 M.CLIENT_ID = "__NUHEAT_CLIENT_ID__"
-M.CLIENT_SECRET = "__NUHEAT_CLIENT_SECRET__"
 M.C4_OAUTH_API_KEY = "__C4_OAUTH_API_KEY__"
 M.C4_LINK_API_KEY = "__C4_LINK_API_KEY__"
 --- "true" selects Control4's production OAuth redirect and short-link servers,
