@@ -68,7 +68,6 @@ CancelTimer = function(name)
 end
 
 local props = {}
--- As on a controller, an update is also seen in Properties.
 C4.UpdateProperty = function(_, name, value)
   props[name] = value
   Properties[name] = value
