@@ -53,9 +53,7 @@ end
 --- Whether this build carries the client and Control4 keys a sign-in needs.
 --- @return boolean
 function Client:isConfigured()
-  return secret(constants.CLIENT_ID) ~= nil
-    and secret(constants.CLIENT_SECRET) ~= nil
-    and secret(constants.C4_OAUTH_API_KEY) ~= nil
+  return secret(constants.CLIENT_ID) ~= nil and secret(constants.C4_OAUTH_API_KEY) ~= nil
 end
 
 --- Create the grant. A refresh token stored by an earlier sign-in on this device
@@ -81,8 +79,9 @@ function Client:start()
     -- The redirect service's maximum; the short link is given the same lifetime.
     REDIRECT_DURATION = 10 * 60,
     API_CLIENT_ID = secret(constants.CLIENT_ID),
-    API_SECRET = secret(constants.CLIENT_SECRET),
-    -- Chemelex enabled PKCE on this client; the secret is kept as well.
+    -- A public client: PKCE stands in for a secret. Empty rather than nil, as
+    -- the grant also uses the secret in the key that encrypts the stored token.
+    API_SECRET = "",
     USE_PKCE = true,
     SCOPES = constants.SCOPES,
   })

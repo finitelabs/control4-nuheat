@@ -17,7 +17,6 @@ local DRIVER = root .. "/drivers/nuheat/driver.lua"
 
 local constants = require("constants")
 constants.CLIENT_ID = "test-client"
-constants.CLIENT_SECRET = "test-secret"
 constants.C4_OAUTH_API_KEY = "c4-oauth-key"
 constants.C4_LINK_API_KEY = ""
 constants.C4_OAUTH_PRODUCTION = ""
