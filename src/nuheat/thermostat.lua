@@ -103,6 +103,13 @@ end
 --- @field maxC number
 --- @field isOff boolean Away/Off (permanent hold at minimum)
 
+--- A thermostat's display name: its Nuheat name, or its serial number.
+--- @param v table Device object from nuheat.client.
+--- @return string
+function M.displayName(v)
+  return type(v.Room) == "string" and v.Room ~= "" and v.Room or ("Nuheat " .. tostring(v.SerialNumber))
+end
+
 --- Normalize a device object.
 --- @param v table
 --- @return NuheatState state

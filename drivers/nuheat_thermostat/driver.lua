@@ -449,10 +449,7 @@ function RFP.updateThermostat(idBinding, _strCommand, tParams)
   end
   gState = Thermostat.fromDevice(gDevice)
   C4:UpdateProperty("Serial ID", gState.serialNumber)
-  C4:UpdateProperty(
-    "Thermostat Name",
-    not IsEmpty(gDevice.Room) and gDevice.Room or ("Nuheat " .. tostring(gState.serialNumber))
-  )
+  C4:UpdateProperty("Thermostat Name", Thermostat.displayName(gDevice))
   applyThermostatName()
   pushCapabilities()
   pushState()

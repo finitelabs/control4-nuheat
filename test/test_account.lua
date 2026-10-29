@@ -139,7 +139,7 @@ T.truthy("base64url, unpadded", challenge and #challenge == 43)
 local link = props["Authentication URL"]
 Properties["Authentication URL"] = "edited"
 OnPropertyChanged("Authentication URL")
-T.eq("an edit to the link is undone", props["Authentication URL"], link)
+T.eq("an edit to the link is undone", Properties["Authentication URL"], link)
 
 timers["OAuth_Nuheat_Timer_CheckState"].callback()
 local token = lastRequest("POST", "connect/token")

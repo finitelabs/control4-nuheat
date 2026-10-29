@@ -32,6 +32,7 @@ local githubUpdater = require("lib.github-updater")
 --#endif
 
 local Client = require("nuheat.client")
+local Thermostat = require("nuheat.thermostat")
 local constants = require("constants")
 
 local NS = constants.BINDING_NAMESPACE
@@ -142,14 +143,6 @@ end
 
 -- ─── Thermostat discovery ──────────────────────────────────────────────────
 
---- A thermostat's display name: its Nuheat name, or its serial number.
---- @param device table
---- @param serial string
---- @return string
-local function thermostatName(device, serial)
-  return not IsEmpty(device.Room) and device.Room or ("Nuheat " .. serial)
-end
-
 --- Store a device, ensure its provider binding exists, register a bind handler
 --- that hands the device off when a companion connects, and push the current
 --- state to any companion already bound.
@@ -165,7 +158,7 @@ local function ingestThermostat(device)
     serial,
     "PROXY",
     true,
-    thermostatName(device, serial),
+    Thermostat.displayName(device),
     constants.THERMOSTAT_CLASS
   )
   if binding then
@@ -308,7 +301,7 @@ local function addThermostats()
   for serial, device in pairs(gState.devices) do
     local binding = bindings:getDynamicBinding(NS, serial)
     if binding and not hasCompanion(binding.bindingId) then
-      local name = thermostatName(device, serial)
+      local name = Thermostat.displayName(device)
       pending[#pending + 1] = { bindingId = binding.bindingId, name = name, roomId = roomFor(name, rooms) }
     end
   end
