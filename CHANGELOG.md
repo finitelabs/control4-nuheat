@@ -18,6 +18,18 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Removed
 -->
 
+## Unreleased
+
+### Added
+
+- Thermostat drivers name themselves after the thermostat in the Nuheat app,
+  including one added and bound by hand, and follow a rename there. Turn the new
+  Auto Rename Driver property Off to keep a name of your own.
+
+### Fixed
+
+- The Authentication URL can be selected and copied in Composer Pro.
+
 ## v20261027 - 2026-10-27
 
 ### Added

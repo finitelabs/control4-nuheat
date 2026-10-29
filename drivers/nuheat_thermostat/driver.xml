@@ -59,6 +59,21 @@
         <readonly>true</readonly>
       </property>
       <property>
+        <name>Thermostat Name</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+      <property>
+        <name>Auto Rename Driver</name>
+        <type>LIST</type>
+        <items>
+          <item>Off</item>
+          <item>On</item>
+        </items>
+        <default>On</default>
+      </property>
+      <property>
         <name>Serial ID</name>
         <type>STRING</type>
         <default/>

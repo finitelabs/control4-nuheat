@@ -92,7 +92,7 @@
         <name>Authentication URL</name>
         <type>STRING</type>
         <default/>
-        <readonly>true</readonly>
+        <readonly>false</readonly>
       </property>
       <property>
         <name>Driver</name>

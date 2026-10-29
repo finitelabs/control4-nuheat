@@ -407,6 +407,18 @@ end
 
 -- ─── Account handoff handlers (account → this companion) ────────────────────
 
+--- With Auto Rename Driver on, name this driver after its thermostat in the
+--- Nuheat app. Only while the account is handing it over, so a companion the
+--- account marked as removed keeps that name.
+local function applyThermostatName()
+  local name = Properties["Thermostat Name"]
+  if not gDevice or Properties["Auto Rename Driver"] ~= "On" or IsEmpty(name) then
+    return
+  end
+  local proxyId = tonumber((tostring(C4:GetProxyDevicesById(C4:GetDeviceID()) or "")):match("^(%d+)"))
+  RenameDevice(proxyId or C4:GetDeviceID(), name)
+end
+
 --- The account hands over the current Nuheat thermostat object.
 function RFP.updateThermostat(idBinding, _strCommand, tParams)
   log:trace("RFP.updateThermostat(%s)", idBinding)
@@ -437,6 +449,8 @@ function RFP.updateThermostat(idBinding, _strCommand, tParams)
   end
   gState = Thermostat.fromDevice(gDevice)
   C4:UpdateProperty("Serial ID", gState.serialNumber)
+  C4:UpdateProperty("Thermostat Name", Thermostat.displayName(gDevice))
+  applyThermostatName()
   pushCapabilities()
   pushState()
 end
@@ -446,6 +460,7 @@ function RFP.goOffline(idBinding, _strCommand)
   log:trace("RFP.goOffline(%s)", idBinding)
   SendToProxy(PROXY_BINDING, "ONLINE_CHANGED", { STATE = false }, "NOTIFY")
   C4:UpdateProperty("Serial ID", "")
+  C4:UpdateProperty("Thermostat Name", "")
   C4:UpdateProperty("Driver Status", "Offline")
   gDevice, gState, gPending = nil, nil, nil
 end
@@ -473,6 +488,10 @@ function OPC.Driver_Status(_v)
   if not gInitialized then
     UpdateProperty("Driver Status", "Initializing", false)
   end
+end
+
+function OPC.Auto_Rename_Driver(_v)
+  applyThermostatName()
 end
 
 function OPC.Driver_Version()

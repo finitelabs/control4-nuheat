@@ -66,4 +66,9 @@ T.eq("up 1 F", Thermostat.round(Thermostat.cToF(Thermostat.stepSetpointC(s, 1, "
 T.eq("capped at 40 C", Thermostat.stepSetpointC(Thermostat.fromDevice(device({ SetPointTemp = 4000 })), 1, "C"), 40)
 T.eq("floored at 5 C", Thermostat.stepSetpointC(Thermostat.fromDevice(device({ SetPointTemp = 500 })), -1, "C"), 5)
 
+T.section("displayName")
+T.eq("the Nuheat name", Thermostat.displayName({ Room = "Kitchen", SerialNumber = 111 }), "Kitchen")
+T.eq("the serial when unnamed", Thermostat.displayName({ Room = "", SerialNumber = 111 }), "Nuheat 111")
+T.eq("the serial when missing", Thermostat.displayName({ SerialNumber = 111 }), "Nuheat 111")
+
 T.finish()
