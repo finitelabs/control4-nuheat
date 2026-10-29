@@ -126,8 +126,8 @@ is an outline of the basic steps for your convenience.
    <br><img alt="Search Drivers" src="./images/search-drivers.png" width="250"/>
 
 1. Run the [Link Account](#link-account) action. The
-   [`Authentication URL`](#authentication-url-read-only) property shows a link:
-   open it in a browser within ten minutes, sign in to Nuheat, and allow access.
+   [`Authentication URL`](#authentication-url) property shows a link: open it in
+   a browser within ten minutes, sign in to Nuheat, and allow access.
 
 1. After a few moments the [`Account Status`](#account-status-read-only) shows
    `Linked` and the [`Driver Status`](#driver-status-read-only) shows
@@ -151,10 +151,10 @@ property, connection, and programming reference.
 
 The Nuheat account is usually the homeowner's, so you don't need their password.
 Run [Link Account](#link-account), copy the
-[`Authentication URL`](#authentication-url-read-only), and send it to the
-homeowner. They open it on any phone or computer within ten minutes, sign in to
-Nuheat, and allow access. That is all: the driver stays linked from then on,
-across reboots and updates.
+[`Authentication URL`](#authentication-url), and send it to the homeowner. They
+open it on any phone or computer within ten minutes, sign in to Nuheat, and
+allow access. That is all: the driver stays linked from then on, across reboots
+and updates.
 
 If the link expires first, run Link Account again for a new one. Once the
 thermostats are added, the homeowner can also link the account themselves from
@@ -184,10 +184,11 @@ releases.
 Displays the link state: `Linked`, a prompt to open the Authentication URL, or
 why the last sign-in failed (e.g. `The sign-in link expired`).
 
-##### Authentication URL (read-only)
+##### Authentication URL
 
 Displays the link to open to sign in to Nuheat while Link Account is waiting.
-Empty otherwise.
+Empty otherwise. Select and copy it to open it in a browser; an edit to it is
+undone.
 
 #### Driver Settings
 
@@ -224,11 +225,11 @@ the current version.
 
 #### Link Account
 
-Starts a sign-in: the [`Authentication URL`](#authentication-url-read-only)
-property shows a link to open, valid for ten minutes. Once you sign in and allow
-access, the driver stays linked, across reboots, until you unlink it. After the
-first link, a customer can also link again from the Control4 app, with **Get
-Link** in any Nuheat thermostat's extras.
+Starts a sign-in: the [`Authentication URL`](#authentication-url) property shows
+a link to open, valid for ten minutes. Once you sign in and allow access, the
+driver stays linked, across reboots, until you unlink it. After the first link,
+a customer can also link again from the Control4 app, with **Get Link** in any
+Nuheat thermostat's extras.
 
 #### Unlink Account
 
@@ -242,7 +243,9 @@ doesn't have one, and binds it. Any Nuheat Thermostat drivers already in the
 project that aren't bound are used first. A new driver goes in the room whose
 name matches the thermostat's Nuheat name (e.g. `Master Bathroom` for
 `Master Bathroom Floor`), or this driver's room when none matches, and is shown
-in that room's Navigators only. Each driver is named after its thermostat.
+in that room's Navigators only. Each driver is named after its thermostat, and
+follows it when it is renamed in the Nuheat app unless that driver's **Auto
+Rename Driver** property is Off.
 
 Run it again after adding a thermostat to the account. A driver whose thermostat
 is no longer on the account is renamed with ` - REMOVED FROM NUHEAT`; copy any
@@ -330,6 +333,18 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 ### Removed
 - Removed
 -->
+
+## Unreleased
+
+### Added
+
+- Thermostat drivers name themselves after the thermostat in the Nuheat app,
+  including one added and bound by hand, and follow a rename there. Turn the new
+  Auto Rename Driver property Off to keep a name of your own.
+
+### Fixed
+
+- The Authentication URL can be selected and copied in Composer Pro.
 
 ## v20261027 - 2026-10-27
 

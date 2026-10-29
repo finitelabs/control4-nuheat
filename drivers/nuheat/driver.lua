@@ -618,6 +618,13 @@ function OPC.Driver_Status(_v)
   end
 end
 
+--- Writable only so Composer lets the link be selected and copied; an edit is undone.
+function OPC.Authentication_URL(propertyValue)
+  if propertyValue ~= gAuth.link then
+    UpdateProperty("Authentication URL", gAuth.link)
+  end
+end
+
 function OPC.Driver_Version(_v)
   C4:UpdateProperty("Driver Version", C4:GetDriverConfigInfo("version"))
 end

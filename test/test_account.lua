@@ -136,6 +136,10 @@ T.contains("for this client", props["Authentication URL"], "client_id=test-clien
 T.contains("with a PKCE challenge", props["Authentication URL"], "code_challenge_method=S256")
 local challenge = props["Authentication URL"]:match("code_challenge=([%w%-_]+)")
 T.truthy("base64url, unpadded", challenge and #challenge == 43)
+local link = props["Authentication URL"]
+Properties["Authentication URL"] = "edited"
+OnPropertyChanged("Authentication URL")
+T.eq("an edit to the link is undone", props["Authentication URL"], link)
 
 timers["OAuth_Nuheat_Timer_CheckState"].callback()
 local token = lastRequest("POST", "connect/token")

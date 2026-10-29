@@ -97,8 +97,10 @@ To add one by hand instead:
 1. In Composer Pro, add the **Nuheat Thermostat** driver to your project.
 1. In the "Connections" tab, bind this driver's **Nuheat Thermostat** connection
    to the thermostat exposed by the **Nuheat** account driver.
-1. The driver automatically synchronizes its state and capabilities once bound.
-   The **Serial ID** property shows which thermostat it is bound to.
+1. The driver automatically synchronizes its state and capabilities once bound,
+   and renames itself after the thermostat (see
+   [Auto Rename Driver](#auto-rename-driver--off--on-)). The **Serial ID**
+   property shows which thermostat it is bound to.
 
 ## Driver Properties
 
@@ -126,6 +128,16 @@ Displays the current status (e.g. `Online`, `Offline`, or
 #### Driver Version (read-only)
 
 Displays the current version of the driver.
+
+#### Thermostat Name (read-only)
+
+Displays the thermostat's name in the Nuheat app.
+
+#### Auto Rename Driver \[ Off | **_On_** \]
+
+When On, this driver is named after its thermostat in the Nuheat app, and is
+renamed when the thermostat is renamed there. Set it to Off to give the driver a
+name of your own.
 
 #### Serial ID (read-only)
 
