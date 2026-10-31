@@ -22,6 +22,12 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ## Unreleased
 
+### Added
+
+- Added a `Support Code` property to the Nuheat and Nuheat Thermostat drivers. A
+  code from Finite Labs support opens the driver's Lua tab in Composer for an
+  hour; leave it blank otherwise.
+
 ### Changed
 
 - Changed Automatic Updates to one setting for the Nuheat driver and its Nuheat
