@@ -120,7 +120,6 @@ can be added.
    all `.c4z` files.
 
 1. Use the "Search" tab to find the "Nuheat" driver and add it to your project.
-   <br><img alt="Search Drivers" src="./images/search-drivers.png" width="250"/>
 
 1. Run the [Link Account](#link-account) action. The
    [`Authentication URL`](#authentication-url) property shows a link: open it in
