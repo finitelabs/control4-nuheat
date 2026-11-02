@@ -572,3 +572,7 @@ function OnDriverLateInit()
   -- The account sends the real state when this binds and on every change.
   pushExtrasSetup({ linked = false, status = "Waiting for the Nuheat account driver", link = "" })
 end
+
+--#ifdef DRIVERCENTRAL
+OnDriverLateInit = diagnostics:wrapLateInit(OnDriverLateInit)
+--#endif

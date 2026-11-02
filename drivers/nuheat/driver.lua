@@ -587,6 +587,10 @@ function OnDriverLateInit()
   end
 end
 
+--#ifdef DRIVERCENTRAL
+OnDriverLateInit = diagnostics:wrapLateInit(OnDriverLateInit)
+--#endif
+
 function OnDriverDestroyed()
   stopPolling()
   CancelTimer("UpdateCheck")
