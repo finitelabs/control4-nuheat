@@ -57,7 +57,7 @@ local function handoff(room)
 end
 
 T.section("before any handoff")
-OnDriverLateInit()
+ShimLateInit()
 T.eq("the default name is kept", names[PROXY_ID], "Nuheat Thermostat")
 
 T.section("a handoff names the driver")

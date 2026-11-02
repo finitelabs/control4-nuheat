@@ -116,7 +116,7 @@ end
 
 dofile(DRIVER)
 OnDriverInit()
-OnDriverLateInit()
+ShimLateInit()
 
 T.section("a fresh driver waits to be linked")
 T.contains("Account Status asks for Link Account", props["Account Status"], "Link Account")
@@ -309,7 +309,7 @@ T.eq("still unlinked", auth and auth.params.LINKED, "false")
 T.section("a build without secrets says so")
 constants.CLIENT_ID = "__NUHEAT_CLIENT_ID__"
 dofile(DRIVER)
-OnDriverLateInit()
+ShimLateInit()
 T.eq("Driver Status", props["Driver Status"], "Not configured")
 T.contains("Account Status", props["Account Status"], "no Nuheat API credentials")
 
