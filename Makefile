@@ -307,7 +307,7 @@ support-code: ## Print today's Support Code, which opens a DriverCentral build's
 # ─── Icons ────────────────────────────────────────────────────────────────────
 
 # Control4's icon artboard to export, from the icon_style answer: shaped or square.
-ICON_STYLE ?= shaped
+ICON_STYLE ?= square
 
 .PHONY: icons
 icons: ## Export the icons and doc images from resources/Driver Icons.sketch (needs Sketch)
