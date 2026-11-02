@@ -171,7 +171,7 @@ local spareId, spareProxy = addCompanion("Nuheat Thermostat")
 
 dofile(DRIVER)
 OnDriverInit()
-OnDriverLateInit()
+ShimLateInit()
 
 T.section("before linking")
 EC.Add_Thermostats()
@@ -254,7 +254,7 @@ C4.SendToProxy = function(_, idBinding, command, tParams)
 end
 dofile(DRIVER)
 OnDriverInit()
-OnDriverLateInit()
+ShimLateInit()
 T.eq("fires no event", events, {})
 T.eq("tells each restored thermostat binding", #authSends, 4)
 T.eq("that the account is not linked", authSends[1] and authSends[1].linked, "false")

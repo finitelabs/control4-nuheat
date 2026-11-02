@@ -44,7 +44,7 @@ end
 C4.GetVersionInfo = function()
   return { version = "4.3.0" }
 end
-OnDriverLateInit()
+ShimLateInit()
 local setup = last("EXTRAS_SETUP_CHANGED")
 local setupXml = setup and setup.params.XML or ""
 T.contains("a Nuheat Account section", setupXml, '<section label="Nuheat Account">')
