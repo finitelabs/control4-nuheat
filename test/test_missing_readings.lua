@@ -244,7 +244,7 @@ T.section("the conversion helpers answer nil instead of raising")
 --------------------------------------------------------------------------------
 
 -- These are the raise sites themselves. The driver guards above are what keeps
--- the nil from travelling, but the helpers are typed number|nil and several
+-- the nil from traveling, but the helpers are typed number|nil and several
 -- callers test the result, so returning nil is the contract.
 for _, case in ipairs({
   { "nil", nil },
