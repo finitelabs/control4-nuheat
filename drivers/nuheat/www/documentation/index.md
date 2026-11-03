@@ -377,6 +377,12 @@ Signs out and removes all dynamically created thermostat connections. Run Link
 Account afterwards to rediscover from scratch. Useful if thermostats were added,
 removed, or renamed on the account.
 
+<!-- #ifdef DRIVERCENTRAL -->
+
+It also turns Cloud Monitoring back on, as a fresh install has it.
+
+<!-- #endif -->
+
 **Parameters:**
 
 - **Are You Sure?** \[ **_No_** | Yes \] - Confirmation to reset the driver.

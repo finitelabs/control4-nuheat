@@ -762,6 +762,9 @@ function EC.Reset_Driver(tParams)
     bindings:reset()
     gState.devices = {}
     client:unlink()
+    --#ifdef DRIVERCENTRAL
+    UpdateProperty("Cloud Monitoring", "Enabled", true)
+    --#endif
   end
 end
 
