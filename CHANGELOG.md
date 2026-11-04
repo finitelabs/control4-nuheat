@@ -18,9 +18,9 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Removed
 -->
 
-<!-- #ifdef DRIVERCENTRAL -->
-
 ## Unreleased
+
+<!-- #ifdef DRIVERCENTRAL -->
 
 ### Added
 
@@ -31,6 +31,16 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
   `Diagnostics Snapshot` action to every driver. Cloud Monitoring sends Finite
   Labs an hourly report of the driver's memory use and a report of each error it
   hits; the documentation says what they hold.
+
+<!-- #endif -->
+
+### Fixed
+
+- Fixed the Nuheat account unlinking, and every thermostat going offline until
+  it was linked again, when Nuheat's sign-in service was too busy to renew the
+  sign-in. The driver now waits and tries again, and the account stays linked.
+
+<!-- #ifdef DRIVERCENTRAL -->
 
 ### Changed
 

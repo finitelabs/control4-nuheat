@@ -330,6 +330,14 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Removed
 -->
 
+## Unreleased
+
+### Fixed
+
+- Fixed the Nuheat account unlinking, and every thermostat going offline until
+  it was linked again, when Nuheat's sign-in service was too busy to renew the
+  sign-in. The driver now waits and tries again, and the account stays linked.
+
 ## v20261029 - 2026-10-29
 
 ### Added
