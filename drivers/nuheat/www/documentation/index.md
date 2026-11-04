@@ -19,12 +19,8 @@ ______________________________________________________________________
 
 # <span style="color:#FF0547">Overview</span>
 
-<!-- #ifndef DRIVERCENTRAL -->
-
 > DISCLAIMER: This software is neither affiliated with nor endorsed by either
 > Control4 or Nuheat (Chemelex).
-
-<!-- #endif -->
 
 Integrate [Nuheat Signature and Conductor](https://www.nuheat.com) floor-heating
 thermostats into Control4. This account driver links to your Nuheat account,
