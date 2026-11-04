@@ -1,6 +1,6 @@
 # DriverCentral images
 
-Marketing images for the Nuheat listing (the listing's DriverCentral product, once created). Each image is an HTML page rendered to PNG, and the rendered PNGs sit next to their sources.
+Marketing images for the Nuheat DriverCentral listing (no product number yet). Each image is an HTML page rendered to PNG, and the rendered PNGs sit next to their sources.
 
 | Path | Size | Used for |
 | --- | --- | --- |
