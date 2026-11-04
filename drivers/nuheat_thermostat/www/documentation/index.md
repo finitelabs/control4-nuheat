@@ -19,12 +19,8 @@ ______________________________________________________________________
 
 # <span style="color:#FF0547">Overview</span>
 
-<!-- #ifndef DRIVERCENTRAL -->
-
 > DISCLAIMER: This software is neither affiliated with nor endorsed by either
 > Control4 or Nuheat (Chemelex).
-
-<!-- #endif -->
 
 This driver represents a single Nuheat floor-heating thermostat as a native
 Control4 thermostat, through the Control4 ThermostatV2 proxy. It does not talk
