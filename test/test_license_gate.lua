@@ -283,7 +283,9 @@ end
 T.section("An Add Thermostats run the stop cut short runs again once a license is back")
 do
   -- Rooms and companions as an empty project has them; Control4 has not yet answered the companion's add.
-  local devicesByName, roomGetId, addDevice = C4.GetDevicesByC4iName, C4.RoomGetId, C4.AddDevice
+  local devicesByName, roomGetId, addDevice, proxies =
+    C4.GetDevicesByC4iName, C4.RoomGetId, C4.AddDevice, C4.GetProxyDevicesById
+  C4.GetProxyDevicesById = function() end
   C4.RoomGetId = function()
     return 1
   end
@@ -293,13 +295,19 @@ do
     end
     return devicesByName(self, name)
   end
-  C4.AddDevice = function() end
+  local answer
+  C4.AddDevice = function(_, _, _, _, callback)
+    answer = callback
+  end
   load({ AC = 1, AS = "License Activated" })
   link()
   EC.Add_Thermostats()
   T.eq("the run is under way", Properties["Driver Status"], "Adding thermostat 1 of 1...")
   cloud.answer = { AC = 0, AS = "Trial Expired" }
   tick(30)
+  answer(901) -- Control4 answers the add after the stop
+  T.eq("the late answer leaves the account stopped", Properties["Driver Status"], "No active license")
+  T.eq("and arms no next step", timers.NuheatAddThermostats, nil)
   ShimPersistLand()
   cloud.answer = { AC = 1, AS = "License Activated" }
   cloud.say(cloud.answer)
@@ -307,7 +315,8 @@ do
   fire("NuheatPoll")
   EC.Add_Thermostats()
   T.eq("Add Thermostats runs again", Properties["Driver Status"], "Adding thermostat 1 of 1...")
-  C4.GetDevicesByC4iName, C4.RoomGetId, C4.AddDevice = devicesByName, roomGetId, addDevice
+  C4.GetDevicesByC4iName, C4.RoomGetId, C4.AddDevice, C4.GetProxyDevicesById =
+    devicesByName, roomGetId, addDevice, proxies
 end
 
 T.section("A Cloud driver update leaves a licensed account polling")

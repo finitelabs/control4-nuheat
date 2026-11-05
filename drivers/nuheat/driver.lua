@@ -196,6 +196,8 @@ local ADD_SPACING_S = 5
 local REMOVED_SUFFIX = " - REMOVED FROM NUHEAT"
 
 local gAdding = false
+-- A companion add Control4 has not answered yet: its answer connects nothing once the run has stopped.
+local gAddInFlight = false
 
 --- @param bindingId integer
 --- @return boolean
@@ -291,7 +293,7 @@ end
 --- already in the project when there is one, else a new one in the matching
 --- room, shown only in that room. One at a time, ADD_SPACING_S apart.
 local function addThermostats()
-  if gAdding then
+  if gAdding or gAddInFlight then
     log:info("Add Thermostats is already running")
     return
   end
@@ -348,7 +350,12 @@ local function addThermostats()
       return
     end
     log:info("Adding a companion for %s in room %s", item.name, item.roomId)
+    gAddInFlight = true
     C4:AddDevice(COMPANION_DRIVER, item.roomId, item.name, function(deviceId)
+      gAddInFlight = false
+      if not gAdding then
+        return
+      end
       deviceId = tonumber(deviceId)
       if not deviceId or deviceId == 0 then
         log:error("Control4 could not add %s for %s", COMPANION_DRIVER, item.name)
