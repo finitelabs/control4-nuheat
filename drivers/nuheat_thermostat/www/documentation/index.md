@@ -13,7 +13,7 @@
 }
 </style>
 
-<img alt="Nuheat Thermostat" src="./images/header.png" width="275"/>
+<img alt="Nuheat Thermostat" src="./images/header.png" width="500"/>
 
 ______________________________________________________________________
 
