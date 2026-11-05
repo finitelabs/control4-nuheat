@@ -8,7 +8,9 @@ Marketing images for the Nuheat DriverCentral listing (no product number yet). E
 | `banners/launch-post-2400x1200` | 2400x1200 | Launch posts (c4forums, Reddit, Discord) |
 | `banners/facts-strip-2400x200` | 2400x200 | The first image in the listing's description: four facts in a row |
 
-`assets/` holds what the pages share: the Finite Labs logo, and Nuheat's wordmark as `brand-mark.png`, exported from this repo's `resources/Driver Icons.sketch` (the art its icons use). Nuheat (part of nVent) publishes no brand kit or rules for other companies.
+`assets/` holds what the pages share: the Finite Labs logo, `scene.js`, which draws the banners' art, and Nuheat's red wordmark as `brand-mark.png`, exported from this repo's `resources/Driver Icons.sketch` (the art its icons use, the wordmark nuheat.com serves as `Nuheat_Logo_RGB_Red.svg`). Nuheat publishes no brand kit, no rules for other companies and no white wordmark.
+
+The banners' art is `dial`: a thermostat dial with heat rising from the floor, set on each banner's `<svg class="scene">`. The template's DriverCentral README lists the styles, and the headline, chips and subtitle shrink until they end clear of the art.
 
 ## Rendering
 
