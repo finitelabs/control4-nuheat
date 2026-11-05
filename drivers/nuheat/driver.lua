@@ -592,6 +592,7 @@ local function stopAccount()
   stopPolling()
   CancelTimer("NuheatReadback")
   CancelTimer("NuheatAddThermostats")
+  gAdding = false
   client:stop()
   for serial in pairs(gState.devices) do
     goOffline(serial)
