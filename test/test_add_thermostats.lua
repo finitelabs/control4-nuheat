@@ -165,6 +165,8 @@ Properties["Log Mode"] = "Off"
 package.preload["cloud-client-byte"] = function()
   return {}
 end
+-- A product id keeps the license gate from stopping the account at its load.
+require("lib.drivercentral").PRODUCT_ID = 999
 
 -- An unconnected companion the integrator already dropped in.
 local spareId, spareProxy = addCompanion("Nuheat Thermostat")

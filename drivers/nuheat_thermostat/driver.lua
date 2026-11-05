@@ -10,12 +10,6 @@
 -- new state to the proxy immediately, and arm a confirm/retry loop that re-sends
 -- until the cloud reflects the change or a timeout accepts reality.
 
---#ifdef DRIVERCENTRAL
-DC_PID = 0 -- TODO: Assign DriverCentral product ID
-DC_X = nil
-DC_FILENAME = "nuheat_thermostat.c4z"
---#endif
-
 require("lib.utils")
 require("drivers-common-public.global.handlers")
 require("drivers-common-public.global.lib")
@@ -28,6 +22,7 @@ local Thermostat = require("nuheat.thermostat")
 local displayScale = require("nuheat.display_scale")
 local constants = require("constants")
 --#ifdef DRIVERCENTRAL
+local drivercentral = require("lib.drivercentral")
 local updateSettings = require("lib.update-settings")
 local supportCode = require("lib.support-code")
 local diagnostics = require("lib.diagnostics")
@@ -535,8 +530,7 @@ end
 
 function OnDriverInit()
   --#ifdef DRIVERCENTRAL
-  require("cloud-client-byte")
-  C4:AllowExecute(false)
+  drivercentral:startClient()
   --#else
   C4:AllowExecute(true)
   --#endif

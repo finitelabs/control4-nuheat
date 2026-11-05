@@ -31,6 +31,9 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
   `Diagnostics Snapshot` action to every driver. Cloud Monitoring sends Finite
   Labs an hourly report of the driver's memory use and a report of each error it
   hits; the documentation says what they hold.
+- Added a license check. Five minutes without an active license or trial, the
+  Nuheat driver stops reaching Nuheat, its thermostats go offline and Driver
+  Status reads `No active license`; a license starts it again at once.
 
 <!-- #endif -->
 
