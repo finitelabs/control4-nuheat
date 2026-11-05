@@ -40,13 +40,17 @@ local function inProduction()
 end
 
 --- Creates a Nuheat client.
---- @param options? table { onLink = fun(link: string), onAuthChanged = fun(authenticated: boolean, reason: string|nil) }
+--- @param options? table { onLink = fun(link: string), onAuthChanged = fun(authenticated: boolean, reason: string|nil), allowed = fun(): boolean }
 --- @return NuheatClient client
 function Client:new(options)
   options = options or {}
   local instance = setmetatable({}, self)
   instance._onLink = options.onLink or function() end
   instance._onAuthChanged = options.onAuthChanged or function() end
+  -- False while the driver may not reach Nuheat: no sign-in, token refresh or request then.
+  instance._allowed = options.allowed or function()
+    return true
+  end
   instance.grant = nil
   return instance
 end
@@ -63,6 +67,9 @@ end
 function Client:start()
   if not self:isConfigured() then
     log:warn("This build has no Nuheat client or Control4 OAuth keys; sign-in is unavailable")
+    return false
+  end
+  if not self._allowed() then
     return false
   end
   -- make_short_link reads the global to pick its server.
@@ -124,7 +131,7 @@ end
 --- Start a sign-in: the link to open arrives through onLink.
 --- @return boolean started False when the build cannot sign in.
 function Client:link()
-  if not self.grant then
+  if not self.grant or not self._allowed() then
     return false
   end
   self.grant:MakeState()
@@ -136,6 +143,24 @@ function Client:unlink()
   if self.grant then
     self.grant:DeleteRefreshToken()
   end
+end
+
+--- The grant's own timers: its refresh, its retry and its wait on a sign-in link.
+local GRANT_TIMERS =
+  { "InitWithToken", "RefreshToken", "RefreshCollisionAvoidance", "CheckState", "GetCodeStatusExpired" }
+
+--- Stop the grant: its timers are cancelled, and a refresh or link check already in flight cannot start them again.
+--- The stored token stays, so `start` signs in again with it.
+function Client:stop()
+  local grant = self.grant
+  if not grant then
+    return
+  end
+  for _, name in ipairs(GRANT_TIMERS) do
+    CancelTimer(grant.timerPrefix .. name)
+  end
+  grant.RefreshToken = function() end
+  grant.CheckState = function() end
 end
 
 --- Whether the client holds an access token.
@@ -202,6 +227,9 @@ function Client:_request(method, path, body)
   local d = deferred.new()
   if not self:isAuthenticated() then
     return d:reject({ message = "Not signed in to Nuheat" })
+  end
+  if not self._allowed() then
+    return d:reject({ message = "No active license" })
   end
   local headers = {
     ["Authorization"] = "Bearer " .. self.grant.ACCESS_TOKEN,

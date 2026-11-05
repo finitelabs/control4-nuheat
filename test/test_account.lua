@@ -109,10 +109,12 @@ Properties["Log Level"] = "3 - Info"
 Properties["Log Mode"] = "Off"
 
 -- Source, not a build: both sides of every #ifdef run, and the DriverCentral
--- licensing client would take over OnDriverLateInit.
+-- licensing client would take over OnDriverLateInit. A product id keeps the
+-- license gate from stopping the account at its load.
 package.preload["cloud-client-byte"] = function()
   return {}
 end
+require("lib.drivercentral").PRODUCT_ID = 999
 
 dofile(DRIVER)
 OnDriverInit()

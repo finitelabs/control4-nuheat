@@ -6,11 +6,7 @@
 -- to. Companions receive the device object over the binding (UPDATE_THERMOSTAT)
 -- and push mutated settings back (setThermostat), which this driver writes.
 
---#ifdef DRIVERCENTRAL
-DC_PID = 0 -- TODO: Assign DriverCentral product ID
-DC_X = nil
-DC_FILENAME = "nuheat.c4z"
---#else
+--#ifndef DRIVERCENTRAL
 DRIVER_GITHUB_REPO = "finitelabs/control4-nuheat"
 --#endif
 
@@ -25,6 +21,7 @@ local log = require("lib.logging")
 local bindings = require("lib.bindings")
 local updateSettings = require("lib.update-settings")
 --#ifdef DRIVERCENTRAL
+local drivercentral = require("lib.drivercentral")
 local supportCode = require("lib.support-code")
 local diagnostics = require("lib.diagnostics")
 --#endif
@@ -35,6 +32,27 @@ local githubUpdater = require("lib.github-updater")
 local Client = require("nuheat.client")
 local Thermostat = require("nuheat.thermostat")
 local constants = require("constants")
+
+--- Whether the license gate lets the account reach Nuheat. An OSS build has no gate.
+--- @return boolean
+local function licensed()
+  --#ifdef DRIVERCENTRAL
+  if not drivercentral:licensed() then
+    return false
+  end
+  --#endif
+  return true
+end
+
+--- Whether the license gate holds the account stopped, logged for an action it refuses.
+--- @return boolean
+local function stopped()
+  if licensed() then
+    return false
+  end
+  log:print("No active license: the Nuheat account stays stopped")
+  return true
+end
 
 local NS = constants.BINDING_NAMESPACE
 local CMD = constants.CMD
@@ -178,6 +196,8 @@ local ADD_SPACING_S = 5
 local REMOVED_SUFFIX = " - REMOVED FROM NUHEAT"
 
 local gAdding = false
+-- A companion add Control4 has not answered yet: its answer connects nothing once the run has stopped.
+local gAddInFlight = false
 
 --- @param bindingId integer
 --- @return boolean
@@ -273,7 +293,7 @@ end
 --- already in the project when there is one, else a new one in the matching
 --- room, shown only in that room. One at a time, ADD_SPACING_S apart.
 local function addThermostats()
-  if gAdding then
+  if gAdding or gAddInFlight then
     log:info("Add Thermostats is already running")
     return
   end
@@ -330,7 +350,12 @@ local function addThermostats()
       return
     end
     log:info("Adding a companion for %s in room %s", item.name, item.roomId)
+    gAddInFlight = true
     C4:AddDevice(COMPANION_DRIVER, item.roomId, item.name, function(deviceId)
+      gAddInFlight = false
+      if not gAdding then
+        return
+      end
       deviceId = tonumber(deviceId)
       if not deviceId or deviceId == 0 then
         log:error("Control4 could not add %s for %s", COMPANION_DRIVER, item.name)
@@ -347,7 +372,7 @@ end
 --- only, and a thermostat the account no longer lists is taken offline.
 --- @return Deferred|nil refresh Settles when the read does; nil when none was sent.
 local function refreshThermostats()
-  if not client:isAuthenticated() then
+  if not client:isAuthenticated() or not licensed() then
     return nil
   end
   if os.time() < gRateLimitedUntil then
@@ -419,6 +444,9 @@ local function pollIntervalS()
 end
 
 local function startPolling()
+  if not licensed() then
+    return
+  end
   SetTimer("NuheatPoll", pollIntervalS() * ONE_SECOND, pollTick, true)
 end
 
@@ -452,6 +480,10 @@ local gWasLinked = nil
 --- @param authenticated boolean
 --- @param reason string|nil
 local function onAuthChanged(authenticated, reason)
+  -- A sign-in or refresh already in flight when the gate stopped the account changes nothing until a license is back.
+  if not licensed() then
+    return
+  end
   gAuth = { linked = authenticated, status = authenticated and "Linked" or (reason or "Not linked"), link = "" }
   pushAuth()
   -- A stored sign-in restored at start-up is not news; a first link, a recovery
@@ -493,7 +525,7 @@ local function onLink(link)
   pushAuth()
 end
 
-client = Client:new({ onLink = onLink, onAuthChanged = onAuthChanged })
+client = Client:new({ onLink = onLink, onAuthChanged = onAuthChanged, allowed = licensed })
 
 --#ifndef DRIVERCENTRAL
 --- Update the driver(s) from the GitHub repository.
@@ -521,8 +553,7 @@ end
 
 function OnDriverInit()
   --#ifdef DRIVERCENTRAL
-  require("cloud-client-byte")
-  C4:AllowExecute(false)
+  drivercentral:startClient()
   --#else
   C4:AllowExecute(true)
   --#endif
@@ -537,6 +568,48 @@ function OnDriverInit()
   -- (see src/lib/bindings.lua).
   bindings:restoreBindings()
 end
+
+--- Sign in with a stored token and poll, as a load does.
+local function startAccount()
+  UpdateProperty("Authentication URL", "")
+  if not client:isConfigured() then
+    C4:UpdateProperty("Account Status", "This build has no Nuheat API credentials")
+    C4:UpdateProperty("Driver Status", "Not configured")
+    gAuth.status = "This build has no Nuheat API credentials"
+    pushAuth()
+    return
+  end
+  if client:start() then
+    -- The refresh's outcome tells the companions, a moment from now.
+    C4:UpdateProperty("Account Status", "Signing in...")
+    C4:UpdateProperty("Driver Status", "Connecting")
+  else
+    gWasLinked = false
+    C4:UpdateProperty("Account Status", "Not linked: run the Link Account action")
+    C4:UpdateProperty("Driver Status", "Not connected")
+    -- Companions keep the last state they were sent, which an update or a
+    -- removed sign-in can leave saying Linked.
+    pushAuth()
+  end
+end
+
+--#ifdef DRIVERCENTRAL
+--- The license gate stopped the account: nothing reaches Nuheat and the thermostats go offline until a license is back.
+local function stopAccount()
+  stopPolling()
+  CancelTimer("NuheatReadback")
+  CancelTimer("NuheatAddThermostats")
+  gAdding = false
+  client:stop()
+  for serial in pairs(gState.devices) do
+    goOffline(serial)
+  end
+  gAuth.status = drivercentral.UNLICENSED_STATUS
+  pushAuth()
+  C4:UpdateProperty("Account Status", drivercentral.UNLICENSED_STATUS)
+  C4:UpdateProperty("Driver Status", drivercentral.UNLICENSED_STATUS)
+end
+--#endif
 
 function OnDriverLateInit()
   log:trace("OnDriverLateInit()")
@@ -565,26 +638,19 @@ function OnDriverLateInit()
   --#endif
 
   gInitialized = true
-  UpdateProperty("Authentication URL", "")
-  if not client:isConfigured() then
-    C4:UpdateProperty("Account Status", "This build has no Nuheat API credentials")
-    C4:UpdateProperty("Driver Status", "Not configured")
-    gAuth.status = "This build has no Nuheat API credentials"
-    pushAuth()
+  --#ifdef DRIVERCENTRAL
+  drivercentral:startGate(function(isLicensed)
+    if isLicensed then
+      startAccount()
+    else
+      stopAccount()
+    end
+  end)
+  if not licensed() then
     return
   end
-  if client:start() then
-    -- The refresh's outcome tells the companions, a moment from now.
-    C4:UpdateProperty("Account Status", "Signing in...")
-    C4:UpdateProperty("Driver Status", "Connecting")
-  else
-    gWasLinked = false
-    C4:UpdateProperty("Account Status", "Not linked: run the Link Account action")
-    C4:UpdateProperty("Driver Status", "Not connected")
-    -- Companions keep the last state they were sent, which an update or a
-    -- removed sign-in can leave saying Linked.
-    pushAuth()
-  end
+  --#endif
+  startAccount()
 end
 
 --#ifdef DRIVERCENTRAL
@@ -705,7 +771,7 @@ end
 function RFP.setThermostat(idBinding, _strCommand, tParams)
   log:trace("RFP.setThermostat(%s)", idBinding)
   local serial = serialForBinding(idBinding)
-  if not serial or not client:isAuthenticated() then
+  if not serial or not client:isAuthenticated() or stopped() then
     return
   end
   local ok, settings = pcall(JSON.decode, JSON, (tParams or {}).JSON or "")
@@ -731,6 +797,9 @@ end
 
 function EC.Link_Account()
   log:trace("EC.Link_Account()")
+  if stopped() then
+    return
+  end
   if not client:link() then
     C4:UpdateProperty("Account Status", "This build has no Nuheat API credentials")
     return
@@ -745,11 +814,17 @@ end
 
 function EC.Refresh_Thermostats()
   log:trace("EC.Refresh_Thermostats()")
+  if stopped() then
+    return
+  end
   refreshThermostats()
 end
 
 function EC.Add_Thermostats()
   log:trace("EC.Add_Thermostats()")
+  if stopped() then
+    return
+  end
   addThermostats()
 end
 
