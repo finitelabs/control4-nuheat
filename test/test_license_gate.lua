@@ -319,6 +319,44 @@ do
     devicesByName, roomGetId, addDevice, proxies
 end
 
+T.section("While a companion add is unanswered, a second Add Thermostats adds no second companion")
+do
+  local devicesByName, roomGetId, addDevice, proxies =
+    C4.GetDevicesByC4iName, C4.RoomGetId, C4.AddDevice, C4.GetProxyDevicesById
+  C4.GetProxyDevicesById = function() end
+  C4.RoomGetId = function()
+    return 1
+  end
+  C4.GetDevicesByC4iName = function(self, name)
+    if name == "roomdevice.c4i" or name == "nuheat_thermostat.c4z" then
+      return {}
+    end
+    return devicesByName(self, name)
+  end
+  local answers = {}
+  C4.AddDevice = function(_, _, _, _, callback)
+    answers[#answers + 1] = callback
+  end
+  load({ AC = 1, AS = "License Activated" })
+  link()
+  EC.Add_Thermostats()
+  cloud.answer = { AC = 0, AS = "Trial Expired" }
+  tick(30)
+  ShimPersistLand()
+  cloud.answer = { AC = 1, AS = "License Activated" }
+  cloud.say(cloud.answer)
+  fire("OAuth_Nuheat_Timer_InitWithToken")
+  fire("NuheatPoll")
+  EC.Add_Thermostats() -- the first add is still unanswered
+  T.eq("it is refused: one add for the one thermostat", #answers, 1)
+  answers[1](901)
+  T.eq("the stale answer starts no run", timers.NuheatAddThermostats, nil)
+  EC.Add_Thermostats()
+  T.eq("once it is answered, Add Thermostats runs", #answers, 2)
+  C4.GetDevicesByC4iName, C4.RoomGetId, C4.AddDevice, C4.GetProxyDevicesById =
+    devicesByName, roomGetId, addDevice, proxies
+end
+
 T.section("A Cloud driver update leaves a licensed account polling")
 do
   load({ AC = 1, AS = "License Activated" })
