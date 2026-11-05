@@ -280,9 +280,9 @@ do
   T.eq("no Account Linked or Not Linked event fires", events, eventsBefore)
 end
 
-T.section("An Add Thermostats run the stop cut short runs again once a license is back")
-do
-  -- Rooms and companions as an empty project has them; Control4 has not yet answered the companion's add.
+--- Rooms and companions as an empty project has them, for an Add Thermostats run. Returns what puts them back.
+--- @return function restore
+local function emptyProject()
   local devicesByName, roomGetId, addDevice, proxies =
     C4.GetDevicesByC4iName, C4.RoomGetId, C4.AddDevice, C4.GetProxyDevicesById
   C4.GetProxyDevicesById = function() end
@@ -295,6 +295,15 @@ do
     end
     return devicesByName(self, name)
   end
+  return function()
+    C4.GetDevicesByC4iName, C4.RoomGetId, C4.AddDevice, C4.GetProxyDevicesById =
+      devicesByName, roomGetId, addDevice, proxies
+  end
+end
+
+T.section("An Add Thermostats run the stop cut short runs again once a license is back")
+do
+  local restore = emptyProject()
   local answer
   C4.AddDevice = function(_, _, _, _, callback)
     answer = callback
@@ -315,24 +324,12 @@ do
   fire("NuheatPoll")
   EC.Add_Thermostats()
   T.eq("Add Thermostats runs again", Properties["Driver Status"], "Adding thermostat 1 of 1...")
-  C4.GetDevicesByC4iName, C4.RoomGetId, C4.AddDevice, C4.GetProxyDevicesById =
-    devicesByName, roomGetId, addDevice, proxies
+  restore()
 end
 
 T.section("While a companion add is unanswered, a second Add Thermostats adds no second companion")
 do
-  local devicesByName, roomGetId, addDevice, proxies =
-    C4.GetDevicesByC4iName, C4.RoomGetId, C4.AddDevice, C4.GetProxyDevicesById
-  C4.GetProxyDevicesById = function() end
-  C4.RoomGetId = function()
-    return 1
-  end
-  C4.GetDevicesByC4iName = function(self, name)
-    if name == "roomdevice.c4i" or name == "nuheat_thermostat.c4z" then
-      return {}
-    end
-    return devicesByName(self, name)
-  end
+  local restore = emptyProject()
   local answers = {}
   C4.AddDevice = function(_, _, _, _, callback)
     answers[#answers + 1] = callback
@@ -353,8 +350,7 @@ do
   T.eq("the stale answer starts no run", timers.NuheatAddThermostats, nil)
   EC.Add_Thermostats()
   T.eq("once it is answered, Add Thermostats runs", #answers, 2)
-  C4.GetDevicesByC4iName, C4.RoomGetId, C4.AddDevice, C4.GetProxyDevicesById =
-    devicesByName, roomGetId, addDevice, proxies
+  restore()
 end
 
 T.section("A Cloud driver update leaves a licensed account polling")
