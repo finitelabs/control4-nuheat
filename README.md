@@ -335,7 +335,7 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 ### Fixed
 
 - Fixed the Nuheat account unlinking, and its thermostats going offline, when
-  Nuheat's sign-in service was too busy to renew the sign-in
+  Nuheat's sign-in service was too busy to renew the sign-in.
 
 ## v20261029 - 2026-10-29
 
