@@ -334,9 +334,8 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ### Fixed
 
-- Fixed the Nuheat account unlinking, and every thermostat going offline until
-  it was linked again, when Nuheat's sign-in service was too busy to renew the
-  sign-in. The driver now waits and tries again, and the account stays linked.
+- Fixed the Nuheat account unlinking, and its thermostats going offline, when
+  Nuheat's sign-in service was too busy to renew the sign-in.
 
 ## v20261029 - 2026-10-29
 
@@ -362,9 +361,9 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Sign-in on Nuheat's own page, so no password is entered in Control4. Link from
   Composer or the Control4 app's Extras, or send the homeowner a short sign-in
   link. The link survives reboots and driver updates.
-- Native Control4 thermostat integration (ThermostatV2): floor temperature, heat
-  setpoint, and Heat/Off mode, in °C or °F.
-- Hold options (Until Next, Permanent).
+- Native Control4 thermostat control of floor temperature, heat setpoint and
+  Heat or Off mode, in °C or °F.
+- Until Next and Permanent hold options.
 - Floor temperature exposed as a temperature-value connection for other drivers.
 - Account Linked and Account Not Linked programming events.
 - Automatic driver updates via GitHub.
