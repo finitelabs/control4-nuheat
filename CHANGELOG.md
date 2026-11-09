@@ -24,38 +24,21 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ### Added
 
-- Added a `Support Code` property to the Nuheat and Nuheat Thermostat drivers. A
-  code from Finite Labs support opens the driver's Lua tab in Composer for an
-  hour; leave it blank otherwise.
-- Added a `Cloud Monitoring` property, Enabled by default, and a
-  `Diagnostics Snapshot` action to every driver. Cloud Monitoring sends Finite
-  Labs an hourly report of the driver's memory use and a report of each error it
-  hits; the documentation says what they hold.
-- Added a license check. Five minutes without an active license or trial, the
-  Nuheat driver stops reaching Nuheat, its thermostats go offline and Driver
-  Status reads `No active license`; a license starts it again at once.
+- Added a Support Code property to the Nuheat and Nuheat Thermostat drivers,
+  which lets Finite Labs support open the driver's Lua tab and its Trace and
+  Ultra log levels for an hour
+- Added Cloud Monitoring, Enabled by default, which sends Finite Labs each
+  driver's memory use every hour and each error it hits, and a Diagnostics
+  Snapshot action
+- Added one Automatic Updates setting for the Nuheat driver and its thermostat
+  drivers, so the drivers update together
 
 <!-- #endif -->
 
 ### Fixed
 
-- Fixed the Nuheat account unlinking, and every thermostat going offline until
-  it was linked again, when Nuheat's sign-in service was too busy to renew the
-  sign-in. The driver now waits and tries again, and the account stays linked.
-
-<!-- #ifdef DRIVERCENTRAL -->
-
-### Changed
-
-- Changed Log Level in the DriverCentral build to stop at `4 - Debug`:
-  `5 - Trace` and `6 - Ultra` are offered only while a Support Code from Finite
-  Labs support has the Lua tab open, and a driver set to either goes back to
-  `4 - Debug`.
-- Changed Automatic Updates to one setting for the Nuheat driver and its Nuheat
-  Thermostat drivers: changing it on any of them now changes it on all of them,
-  so the drivers update together.
-
-<!-- #endif -->
+- Fixed the Nuheat account unlinking, and its thermostats going offline, when
+  Nuheat's sign-in service was too busy to renew the sign-in
 
 ## v20261029 - 2026-10-29
 
@@ -81,9 +64,9 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Sign-in on Nuheat's own page, so no password is entered in Control4. Link from
   Composer or the Control4 app's Extras, or send the homeowner a short sign-in
   link. The link survives reboots and driver updates.
-- Native Control4 thermostat integration (ThermostatV2): floor temperature, heat
-  setpoint, and Heat/Off mode, in °C or °F.
-- Hold options (Until Next, Permanent).
+- Native Control4 thermostat control of floor temperature, heat setpoint and
+  Heat or Off mode, in °C or °F.
+- Until Next and Permanent hold options.
 - Floor temperature exposed as a temperature-value connection for other drivers.
 - Account Linked and Account Not Linked programming events.
   <!-- #ifndef DRIVERCENTRAL -->
