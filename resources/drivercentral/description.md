@@ -2,6 +2,9 @@
 
 ## Overview
 
+*This software is neither affiliated with nor endorsed by either Control4 or
+Nuheat (Chemelex).*
+
 Control Nuheat Signature and Conductor floor-heating thermostats from Control4.
 Each thermostat is a native Control4 thermostat with its floor temperature,
 setpoint, mode and hold, so heated floors sit beside the rest of the home's
@@ -21,7 +24,7 @@ password is never entered in Control4.
 - Floor temperature as a connection for other drivers
 - Account Linked and Account Not Linked events for programming
 
-## Included Drivers
+## Included drivers
 
 ### Nuheat
 
@@ -42,8 +45,6 @@ setpoint, mode and hold.
 
 ## Compatibility
 
-- Nuheat Signature
-- Nuheat Conductor
-
-Each thermostat keeps running its own schedule, which is managed in the Nuheat
-app.
+Works with Nuheat Signature and Conductor thermostats. Nuheat's official API
+does not offer schedule editing, so each thermostat's schedule is managed in the
+Nuheat app and keeps running on the thermostat.
