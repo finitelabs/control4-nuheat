@@ -377,6 +377,28 @@ do
   T.eq("nothing reaches Nuheat", #requests, 0)
 end
 
+T.section("An error in a sign-in callback is reported")
+do
+  local diagnostics = require("lib.diagnostics")
+  local captureError, updateProperty = diagnostics.captureError, C4.UpdateProperty
+  local sources = {}
+  diagnostics.captureError = function(_, _, _, source)
+    sources[#sources + 1] = source
+  end
+  load({ AC = 1, AS = "License Activated" })
+  C4.UpdateProperty = function(_, name, value)
+    if name == "Account Status" then
+      error("Account Status could not be shown")
+    end
+    Properties[name] = value
+  end
+  client._onLink("https://link.example.invalid/abc")
+  client._onAuthChanged(true)
+  C4.UpdateProperty = updateProperty
+  T.eq("onLink's and onAuthChanged's", sources, { "onLink", "onAuthChanged" })
+  diagnostics.captureError = captureError
+end
+
 if gate and gate._timer then
   gate._timer:Cancel()
 end

@@ -526,6 +526,12 @@ local function onLink(link)
   pushAuth()
 end
 
+--#ifdef DRIVERCENTRAL
+-- The sign-in grant runs these under a guard that only prints an error.
+onAuthChanged = diagnostics:wrap(onAuthChanged, "onAuthChanged")
+onLink = diagnostics:wrap(onLink, "onLink")
+--#endif
+
 client = Client:new({ onLink = onLink, onAuthChanged = onAuthChanged, allowed = licensed })
 
 --#ifndef DRIVERCENTRAL
