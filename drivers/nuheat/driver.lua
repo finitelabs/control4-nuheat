@@ -728,10 +728,9 @@ local gWriteInFlight = {}
 --- @type table<string, table>
 local gQueuedWrite = {}
 
---- @type fun(serial: string, settings: table): void
-local writeThermostat
-
-writeThermostat = function(serial, settings)
+--- @param serial string
+--- @param settings table
+local function writeThermostat(serial, settings)
   gWriteInFlight[serial] = true
   local function done()
     gWriteInFlight[serial] = nil
