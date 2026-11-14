@@ -38,6 +38,7 @@
       <description>NAME account is STRING</description>
       <true_text>Linked</true_text>
       <false_text>Not Linked</false_text>
+      <sort_order>1</sort_order>
     </conditional>
   </conditionals>
   <config>
