@@ -23,16 +23,11 @@ so your Nuheat password is never entered in Control4.
 <div style="font-size: small">
 
 - [System Requirements](#system-requirements)
-
 - [Included Drivers](#included-drivers)
-
   - [Nuheat](#nuheat)
   - [Nuheat Thermostat](#nuheat-thermostat)
-
 - [Compatibility](#compatibility)
-
 - [Installer Setup](#installer-setup)
-
   - [Driver Installation](#driver-installation)
   - [Linking the Homeowner's Nuheat Account](#linking-the-homeowners-nuheat-account)
   - [Driver Setup](#driver-setup)
@@ -44,9 +39,7 @@ so your Nuheat password is never entered in Control4.
     - [Driver Actions](#driver-actions)
   - [Connections](#connections)
   - [Programming Reference](#programming-reference)
-
 - [Support](#support)
-
 - [Changelog](#changelog)
 
 </div>
