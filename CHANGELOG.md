@@ -51,31 +51,31 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ### Added
 
-- Thermostat drivers name themselves after the thermostat in the Nuheat app,
-  including one added and bound by hand, and follow a rename there. Turn the new
-  Auto Rename Driver property Off to keep a name of your own.
+- Added automatic naming of thermostat drivers after their thermostat in the
+  Nuheat app, including one added and bound by hand, following a rename there.
+  Turn the new Auto Rename Driver property Off to keep a name of your own.
 
 ### Fixed
 
-- The Authentication URL can be selected and copied in Composer Pro.
+- Fixed the Authentication URL so it can be selected and copied in Composer Pro.
 
 ## v20261027 - 2026-10-27
 
 ### Added
 
-- Initial release.
-- Control for Nuheat Signature and Conductor floor-heating thermostats through
-  the official Nuheat OpenAPI. An account driver links to your Nuheat account,
-  and its Add Thermostats action adds a thermostat companion driver for each
-  thermostat it finds, shown only in that thermostat's room.
-- Sign-in on Nuheat's own page, so no password is entered in Control4. Link from
-  Composer or the Control4 app's Extras, or send the homeowner a short sign-in
-  link. The link survives reboots and driver updates.
-- Native Control4 thermostat control of floor temperature, heat setpoint and
-  Heat or Off mode, in °C or °F.
-- Until Next and Permanent hold options.
-- Floor temperature exposed as a temperature-value connection for other drivers.
-- Account Linked and Account Not Linked programming events.
+- Added the Nuheat and Nuheat Thermostat drivers.
+- Added control for Nuheat Signature and Conductor floor-heating thermostats
+  through the official Nuheat OpenAPI. An account driver links to your Nuheat
+  account, and its Add Thermostats action adds a thermostat companion driver for
+  each thermostat it finds, shown only in that thermostat's room.
+- Added sign-in on Nuheat's own page, so no password is entered in Control4.
+  Link from Composer or the Control4 app's Extras, or send the homeowner a short
+  sign-in link. The link survives reboots and driver updates.
+- Added native Control4 thermostat control of floor temperature, heat setpoint
+  and Heat or Off mode, in °C or °F.
+- Added Until Next and Permanent hold options.
+- Added floor temperature as a temperature-value connection for other drivers.
+- Added Account Linked and Account Not Linked programming events.
   <!-- #ifndef DRIVERCENTRAL -->
-- Automatic driver updates via GitHub.
+- Added automatic driver updates via GitHub.
   <!-- #endif -->
