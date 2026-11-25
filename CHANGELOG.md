@@ -52,8 +52,9 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 ### Added
 
 - Added automatic naming of thermostat drivers after their thermostat in the
-  Nuheat app, including one added and bound by hand, following a rename there.
-  Turn the new Auto Rename Driver property Off to keep a name of your own.
+  Nuheat app, including one added and bound by hand, and renaming them when the
+  thermostat is renamed there. Turn the new Auto Rename Driver property Off to
+  keep a name of your own.
 
 ### Fixed
 
